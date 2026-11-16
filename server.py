@@ -26,7 +26,8 @@ import fpl_data as fpl
 from bot import NO_KEY, ChatError, active_model, chat_configured, make_bot, provider
 
 PORT = int(os.getenv("PORT", "8000"))
-APP_PASSWORD = os.getenv("APP_PASSWORD", "")  # optional: when set, Ask requires this password
+# Optional: when set, Ask requires this password. Stray spaces from pasting are ignored.
+APP_PASSWORD = os.getenv("APP_PASSWORD", "").strip()
 MAX_HISTORY_TURNS = 12  # earlier turns replayed to the model with each question
 MAX_TURN_CHARS = 8000
 INDEX = Path(__file__).parent / "public" / "index.html"  # Vercel also serves public/ from its CDN
@@ -113,7 +114,8 @@ def league(league_id: int):
 # ---------- ask: AI model + tools ----------
 
 def _check_password(supplied: Optional[str]) -> None:
-    if APP_PASSWORD and not hmac.compare_digest((supplied or "").encode(), APP_PASSWORD.encode()):
+    typed = (supplied or "").strip()
+    if APP_PASSWORD and not hmac.compare_digest(typed.encode(), APP_PASSWORD.encode()):
         raise HTTPException(401, "Wrong password.")
 
 
