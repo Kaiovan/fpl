@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FPL Assistant</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --line: #e1e0d9; --line-strong: #c3c2b7; --wash: rgba(11, 11, 11, .04);
+    --accent: #6250d6; --on-accent: #fff; --accent-wash: rgba(98, 80, 214, .10);
+    --warn: #fab219; --crit: #d03b3b;
+    /* Fixture difficulty: blue (easy) to red (hard) around a neutral midpoint. */
+    --fdr1: #256abf; --fdr1-ink: #fff;    --fdr2: #9ec5f4; --fdr2-ink: #0b0b0b;
+    --fdr3: #f0efec; --fdr3-ink: #0b0b0b; --fdr4: #f3b3b1; --fdr4-ink: #0b0b0b;
+    --fdr5: #c8393a; --fdr5-ink: #fff;    --fdr-ring: rgba(11, 11, 11, .12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7;
+      --line: #2c2c2a; --line-strong: #4a4a46; --wash: rgba(255, 255, 255, .05);
+      --accent: #9085e9; --on-accent: #0b0b0b; --accent-wash: rgba(144, 133, 233, .18);
+      --fdr1: #3987e5; --fdr1-ink: #0b0b0b; --fdr2: #184f95; --fdr2-ink: #fff;
+      --fdr3: #383835; --fdr3-ink: #f0efec; --fdr4: #8a2f2f; --fdr4-ink: #fff;
+      --fdr5: #e66767; --fdr5-ink: #0b0b0b; --fdr-ring: rgba(255, 255, 255, .12);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; flex-direction: column; height: 100dvh;
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--ink);
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  h2 { margin: 0; }
+
+  /* top bar */
+  .topbar {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px;
+    padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--line);
+  }
+  .brand { font-size: 16px; font-weight: 650; letter-spacing: -.01em; }
+  .gw { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; color: var(--ink-2); }
+  .gw strong { color: var(--ink); }
+  .pill {
+    padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: 999px;
+    font-size: 12px; color: var(--ink-2); white-space: nowrap;
+  }
+  .teamid { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
+  .teamid input { width: 120px; }
+
+  /* shared controls */
+  .field {
+    height: 32px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 8px;
+    background: var(--surface);
+  }
+  .btn {
+    height: 32px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px;
+    background: var(--surface); font-weight: 500; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover:not(:disabled) { background: var(--wash); }
+  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  .btn.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+  .btn.small { height: 26px; padding: 0 9px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* layout */
+  .switch { display: none; gap: 4px; padding: 8px 16px 0; }
+  .switch button { flex: 1; }
+  .switch button[aria-pressed="true"] { background: var(--accent-wash); border-color: var(--accent); }
+  .layout {
+    flex: 1; min-height: 0; display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  }
+  .explore { min-width: 0; overflow: auto; padding: 14px 16px 24px; }
+  .chat {
+    display: flex; flex-direction: column; min-height: 0;
+    background: var(--surface); border-left: 1px solid var(--line);
+  }
+  @media (max-width: 900px) {
+    .switch { display: flex; }
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .chat { border-left: 0; border-top: 1px solid var(--line); margin-top: 8px; }
+    body[data-pane="explore"] .chat, body[data-pane="ask"] .explore { display: none; }
+    .teamid { margin-left: 0; }
+  }
+
+  /* explore */
+  .tabs {
+    display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none;
+    border-bottom: 1px solid var(--line); margin-bottom: 16px;
+  }
+  .tab {
+    padding: 8px 12px; border: 0; border-bottom: 2px solid transparent; background: none;
+    color: var(--ink-2); font-weight: 500; white-space: nowrap; cursor: pointer;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .panel-head {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    margin-bottom: 14px;
+  }
+  .panel-head h2 { font-size: 19px; letter-spacing: -.01em; }
+  .panel-head p { margin: 2px 0 0; color: var(--ink-2); max-width: 60ch; }
+  .controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; margin-bottom: 14px; }
+  .controls:empty { display: none; }
+  .control { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); }
+  .control .field { font-size: 14px; color: var(--ink); }
+  .control input[type="number"] { width: 110px; }
+  .check { display: flex; align-items: center; gap: 6px; height: 32px; color: var(--ink); cursor: pointer; }
+  .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+  .seg-btn {
+    height: 30px; padding: 0 12px; border: 0; background: var(--surface);
+    font-size: 14px; color: var(--ink-2); cursor: pointer;
+  }
+  .seg-btn + .seg-btn { border-left: 1px solid var(--line-strong); }
+  .seg-btn[aria-pressed="true"] { background: var(--accent-wash); color: var(--ink); font-weight: 600; }
+  .seg-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .results { transition: opacity .15s; }
+  .results.stale { opacity: .45; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  thead th { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--wash); }
+  tbody tr:last-child > * { border-bottom: 0; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .strong { font-weight: 650; }
+  .wrap { white-space: normal; min-width: 240px; }
+  .act { width: 1%; text-align: right; }
+  .group th { padding-top: 12px; font-size: 12px; color: var(--ink-2); background: var(--wash); }
+  .me > * { background: var(--accent-wash); }
+  th.team { font-weight: 600; position: sticky; left: 0; background: var(--surface); }
+  .name { font-weight: 600; }
+  .sub { font-size: 12px; color: var(--ink-2); }
+  .badge {
+    margin-left: 6px; padding: 0 5px; border-radius: 4px; background: var(--accent);
+    color: var(--on-accent); font-size: 11px; font-weight: 700; vertical-align: 1px;
+  }
+  .status { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-2); }
+  .status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+  .status.out::before { background: var(--crit); }
+
+  /* fixture difficulty chips */
+  .fxs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .fx {
+    display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 6px;
+    border-radius: 6px; box-shadow: inset 0 0 0 1px var(--fdr-ring);
+    font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .fx small { font-size: 10px; font-weight: 700; opacity: .8; }
+  .fdr1 { background: var(--fdr1); color: var(--fdr1-ink); }
+  .fdr2 { background: var(--fdr2); color: var(--fdr2-ink); }
+  .fdr3 { background: var(--fdr3); color: var(--fdr3-ink); }
+  .fdr4 { background: var(--fdr4); color: var(--fdr4-ink); }
+  .fdr5 { background: var(--fdr5); color: var(--fdr5-ink); }
+  .blank { font-size: 12px; color: var(--ink-2); }
+  .legend { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin: 10px 2px 0; font-size: 12px; color: var(--ink-2); }
+  .legend .fx { padding: 0 7px; }
+  .note { margin: 10px 2px 0; font-size: 12px; color: var(--ink-2); max-width: 80ch; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+  .tile .k { font-size: 12px; color: var(--ink-2); }
+  .tile .v { font-size: 20px; font-weight: 650; overflow-wrap: anywhere; }
+  .tile .s { font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
+
+  .notice {
+    padding: 14px 16px; border: 1px dashed var(--line-strong); border-radius: 12px;
+    color: var(--ink-2); max-width: 70ch;
+  }
+  .notice.error { border-style: solid; border-color: var(--crit); color: var(--ink); }
+  .notice .btn { margin-top: 10px; }
+
+  /* chat */
+  .chat-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 14px; border-bottom: 1px solid var(--line);
+  }
+  .chat-head h2 { font-size: 15px; }
+  .chat-head .sub { font-weight: 400; }
+  .messages { flex: 1; min-height: 0; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 94%; padding: 8px 12px; border-radius: 12px; overflow-wrap: anywhere; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; white-space: pre-wrap; }
+  .msg.bot { align-self: flex-start; background: var(--wash); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg.error { align-self: flex-start; border: 1px solid var(--crit); }
+  .msg.bot p { margin: 0 0 8px; }
+  .msg.bot h4 { margin: 10px 0 4px; font-size: 14px; }
+  .msg.bot ul, .msg.bot ol { margin: 0 0 8px; padding-left: 20px; }
+  .msg.bot li { margin: 2px 0; }
+  .msg.bot hr { border: 0; border-top: 1px solid var(--line); margin: 10px 0; }
+  .msg.bot code { padding: 0 4px; border-radius: 4px; background: var(--wash); font-size: 13px; }
+  .msg.bot a { color: var(--accent); }
+  .msg.bot > :first-child { margin-top: 0; }
+  .msg.bot > :last-child { margin-bottom: 0; }
+  .md-table { overflow-x: auto; margin: 0 0 8px; }
+  .md-table table { font-size: 12px; }
+  .md-table th, .md-table td { padding: 4px 8px; }
+  .used { margin-top: 6px; font-size: 12px; color: var(--ink-2); }
+  .typing { color: var(--ink-2); }
+  .typing i { display: inline-block; width: 5px; height: 5px; margin-right: 3px; border-radius: 50%; background: currentColor; animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .2s; }
+  .typing i:nth-child(3) { animation-delay: .4s; margin-right: 8px; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .typing i { animation: none; } .results { transition: none; } }
+  .welcome { margin: auto 0; color: var(--ink-2); }
+  .welcome p { margin: 0 0 10px; }
+  .welcome > .btn { display: block; width: 100%; height: auto; padding: 7px 10px; margin-top: 6px; text-align: left; white-space: normal; font-weight: 400; color: var(--ink); }
+  .welcome .fineprint { margin: 12px 0 0; font-size: 12px; }
+  .unlock-wrap { align-self: stretch; color: var(--ink-2); }
+  .unlock-wrap p { margin: 0 0 8px; }
+  .unlock { display: flex; gap: 8px; }
+  .unlock input { flex: 1; min-width: 0; color: var(--ink); }
+  .unlock-wrap .unlock-error { margin: 6px 0 0; min-height: 1.4em; font-size: 12px; font-weight: 600; color: var(--ink); }
+  .composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--line); }
+  .composer textarea {
+    flex: 1; min-height: 38px; max-height: 140px; padding: 8px 10px; resize: none;
+    border: 1px solid var(--line-strong); border-radius: 10px; background: var(--page);
+  }
+  .composer .btn { height: 38px; }
+</style>
+</head>
+<body data-pane="explore">
+
+<header class="topbar">
+  <div class="brand">FPL Assistant</div>
+  <div class="gw" id="gw" aria-live="polite"></div>
+  <label class="teamid" title="The number in the URL of your FPL Points page: fantasy.premierleague.com/entry/1234567/event/12">
+    Team ID
+    <input class="field" id="teamId" inputmode="numeric" autocomplete="off" placeholder="e.g. 1234567">
+  </label>
+</header>
+
+<div class="switch" role="group" aria-label="View">
+  <button class="btn" type="button" data-pane="explore" aria-pressed="true">Explore</button>
+  <button class="btn" type="button" data-pane="ask" aria-pressed="false">Ask</button>
+</div>
+
+<main class="layout">
+  <section class="explore" aria-label="Explore">
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div id="panel"></div>
+    <div class="results" id="results"></div>
+  </section>
+
+  <aside class="chat" aria-label="Ask the assistant">
+    <div class="chat-head">
+      <h2>Ask <span class="sub" id="model"></span></h2>
+      <button class="btn small" id="newChat" type="button">New chat</button>
+    </div>
+    <div class="messages" id="messages" aria-live="polite"></div>
+    <form class="composer" id="composer">
+      <textarea id="chatInput" rows="1" maxlength="2000" placeholder="Ask about players, captains, transfers…" aria-label="Your question"></textarea>
+      <button class="btn primary" id="sendBtn" type="submit">Send</button>
+    </form>
+  </aside>
+</main>
+
+<script>
+'use strict';
+
+/* ---------- small helpers ---------- */
+
+const $ = (sel, el = document) => el.querySelector(sel);
+
+// Build a DOM node. String children become text nodes, so API data is never parsed as HTML.
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k in el) el[k] = v;
+    else el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat(2)) if (kid != null && kid !== false) el.append(kid);
+  return el;
+}
+
+async function api(path, options) {
+  let res;
+  try { res = await fetch(path, options); }
+  catch { throw new Error("Can't reach the server. Is it still running?"); }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    const detail = data && data.detail;
+    const err = new Error(typeof detail === 'string' ? detail : `Request failed (${res.status}).`);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+const qs = (o) => new URLSearchParams(
+  Object.entries(o).filter(([, v]) => v != null && v !== '')).toString();
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } },
+  set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} },
+};
+
+const money = (v) => '£' + Number(v).toFixed(1) + 'm';
+const one = (v) => Number(v).toFixed(1);
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* ---------- state ---------- */
+
+const state = {
+  tab: 'captain',
+  teamId: parseInt(store.get('fpl.teamId'), 10) || null,
+  password: store.get('fpl.chatPassword'),  // only used when the server sets APP_PASSWORD
+  meta: null,
+  p: {
+    captain: { scope: 'mine', top: 10 },
+    transfers: { position: 'MID', max: 8, gws: 5, hideOwned: true },
+    fixtures: { gws: 5 },
+    differentials: { own: 5, position: '', max: '' },
+    injuries: { team: '' },
+    league: { id: store.get('fpl.leagueId') },
+  },
+};
+const nextGw = () => state.meta ? state.meta.gameweek.next_gameweek : null;
+
+const POSITIONS = [['GKP', 'Goalkeepers'], ['DEF', 'Defenders'], ['MID', 'Midfielders'], ['FWD', 'Forwards']];
+const GW_WINDOWS = [[3, 'Next 3 gameweeks'], [5, 'Next 5 gameweeks'], [8, 'Next 8 gameweeks']];
+
+/* ---------- control builders ---------- */
+
+const field = (label, control) => h('label', { class: 'control' }, h('span', null, label), control);
+
+function select(label, options, value, onChange) {
+  return field(label, h('select', { class: 'field', onchange: (e) => onChange(e.target.value) },
+    options.map(([v, text]) => h('option', { value: String(v), selected: String(v) === String(value) }, text))));
+}
+
+function numberInput(label, value, attrs, onChange) {
+  return field(label, h('input', {
+    class: 'field', type: 'number', ...attrs, value: String(value),
+    oninput: debounce((e) => {
+      const v = e.target.value === '' ? '' : parseFloat(e.target.value);
+      if (v === '' || Number.isFinite(v)) onChange(v);
+    }, 350),
+  }));
+}
+
+function checkbox(label, checked, onChange) {
+  return h('label', { class: 'check' },
+    h('input', { type: 'checkbox', checked, onchange: (e) => onChange(e.target.checked) }), label);
+}
+
+function segmented(label, options, value, onChange) {
+  const group = h('div', { class: 'seg', role: 'group', 'aria-label': label });
+  for (const [v, text, disabledWhy] of options) {
+    group.append(h('button', {
+      class: 'seg-btn', type: 'button', 'aria-pressed': String(v === value),
+      disabled: !!disabledWhy, title: disabledWhy || '',
+      onclick: (e) => {
+        for (const b of group.children) b.setAttribute('aria-pressed', String(b === e.currentTarget));
+        onChange(v);
+      },
+    }, text));
+  }
+  return h('div', { class: 'control' }, h('span', null, label), group);
+}
+
+/* ---------- result builders ---------- */
+
+const col = (label, cls, title) => ({ label, cls, title });
+
+function table(columns, rows) {
+  return h('div', { class: 'card' }, h('div', { class: 'table-wrap' }, h('table', null,
+    h('thead', null, h('tr', null,
+      columns.map((c) => h('th', { class: c.cls, title: c.title, scope: 'col' }, c.label)))),
+    h('tbody', null, rows))));
+}
+
+const notice = (text, cls) => h('div', { class: 'notice' + (cls ? ' ' + cls : '') }, text);
+const note = (text) => h('p', { class: 'note' }, text);
+
+function chip(f) {
+  return h('span', {
+    class: 'fx fdr' + f.fdr,
+    title: `GW${f.gw}: ${f.opponent} (${f.home ? 'home' : 'away'}), difficulty ${f.fdr} of 5`,
+  }, `${f.opponent} (${f.home ? 'H' : 'A'})`, h('small', null, String(f.fdr)));
+}
+
+// The API describes a player's run as "GW11 ARS(H) FDR2, GW12 CHE(A) FDR4".
+function fixtureChips(text) {
+  const chips = [];
+  for (const m of (text || '').matchAll(/GW(\d+) (\S+?)\((H|A)\) FDR(\d)/g)) {
+    chips.push(chip({ gw: +m[1], opponent: m[2], home: m[3] === 'H', fdr: +m[4] }));
+  }
+  if (!chips.length) return h('span', { class: 'blank' }, 'No fixture');
+  // Keep up to three chips per line so a narrow table scrolls sideways instead of stacking them.
+  return h('div', { class: 'fxs', style: `min-width: ${Math.min(chips.length, 3) * 74}px` }, chips);
+}
+
+function legend() {
+  return h('div', { class: 'legend' }, h('span', null, 'Fixture difficulty:'),
+    [1, 2, 3, 4, 5].map((n) => h('span', { class: 'fx fdr' + n }, String(n))),
+    h('span', null, '1 is easiest, 5 is hardest. (H) home, (A) away.'));
+}
+
+function statusFlag(p) {
+  if (!p.status || p.status === 'available') return null;
+  const chance = p.chance_of_playing_next_gw;
+  return h('div', { class: 'status' + (p.status === 'doubtful' ? '' : ' out'), title: p.news || '' },
+    cap(p.status) + (chance != null ? ` · ${chance}% to play` : ''));
+}
+
+function playerCell(p, badge) {
+  return h('td', null,
+    h('div', { class: 'name' }, p.name, badge ? h('span', { class: 'badge' }, badge) : null),
+    h('div', { class: 'sub' }, `${p.team} · ${p.position}`),
+    statusFlag(p));
+}
+
+function playerRow(p, fxKey, opt) {
+  return h('tr', null,
+    playerCell(p, opt.badge && opt.badge(p)),
+    h('td', { class: 'num' }, money(p.price_m)),
+    h('td', { class: 'num' }, one(p.form)),
+    h('td', { class: 'num' }, one(p.points_per_game)),
+    h('td', { class: 'num' }, String(p.total_points)),
+    h('td', { class: 'num' }, one(p.selected_by_pct) + '%'),
+    h('td', null, fixtureChips(p[fxKey])),
+    opt.score ? h('td', { class: 'num strong' }, one(p[opt.score])) : null,
+    h('td', { class: 'act' }, h('button', {
+      class: 'btn small', type: 'button', title: `Ask the assistant about ${p.name}`,
+      onclick: () => askBot(`Tell me about ${p.full_name} (${p.team}): form, upcoming fixtures, and whether he's worth owning right now.`),
+    }, 'Ask')));
+}
+
+function playerColumns(opt) {
+  return [
+    col('Player'), col('Price', 'num'),
+    col('Form', 'num', 'Average points per match over the last 30 days'),
+    col('PPG', 'num', 'Points per game this season'),
+    col('Pts', 'num', 'Total points this season'),
+    col('Owned', 'num', 'Share of managers who own this player'),
+    col('Next fixtures'),
+    opt.score ? col('Score', 'num', 'Higher is better. See the note below the table.') : null,
+    col('', 'act'),
+  ].filter(Boolean);
+}
+
+function playerTable(players, opt = {}) {
+  if (!players || !players.length) return notice('No players match these filters.');
+  const fxKey = Object.keys(players[0]).find((k) => /^next_\d+_fixtures$/.test(k));
+  return table(playerColumns(opt), players.map((p) => playerRow(p, fxKey, opt)));
+}
+
+function fixtureGrid(d) {
+  const columns = [col('Team'), ...d.gameweeks.map((g) => col('GW' + g)),
+    col('Average', 'num', 'Average difficulty across these fixtures. Lower is easier.')];
+  return table(columns, d.teams.map((t) => h('tr', null,
+    h('th', { class: 'team', scope: 'row' }, t.team),
+    d.gameweeks.map((g) => {
+      const fxs = t.fixtures.filter((f) => f.gw === g);
+      return h('td', null, fxs.length ? h('div', { class: 'fxs' }, fxs.map(chip))
+        : h('span', { class: 'blank', title: `No fixture in GW${g}` }, 'Blank'));
+    }),
+    h('td', { class: 'num strong' }, t.avg_fdr == null ? '–' : t.avg_fdr.toFixed(2)))));
+}
+
+function injuryTable(d) {
+  if (!d.players.length) return notice('No flagged players.');
+  const columns = [col('Player'), col('Status'), col('News'), col('Owned', 'num', 'Share of managers who own this player')];
+  return table(columns, d.players.map((p) => h('tr', null,
+    h('td', null, h('div', { class: 'name' }, p.name), h('div', { class: 'sub' }, p.team)),
+    h('td', null, statusFlag({ ...p, news: '' })),
+    h('td', { class: 'wrap' }, p.news),
+    h('td', { class: 'num' }, one(p.selected_by_pct) + '%'))));
+}
+
+function tiles(items) {
+  return h('div', { class: 'tiles' }, items.filter(Boolean).map(([k, v, s]) => h('div', { class: 'tile' },
+    h('div', { class: 'k' }, k), h('div', { class: 'v' }, v), s ? h('div', { class: 's' }, s) : null)));
+}
+
+function squadView(d) {
+  const opt = { badge: (p) => (p.captain ? 'C' : p.vice_captain ? 'VC' : null) };
+  const fxKey = Object.keys(d.squad[0] || {}).find((k) => /^next_\d+_fixtures$/.test(k));
+  const columns = playerColumns(opt);
+  const squad = [...d.squad].sort((a, b) => a.slot - b.slot);
+  const group = (label) => h('tr', { class: 'group' }, h('th', { colSpan: columns.length, scope: 'colgroup' }, label));
+  const rows = [
+    group('Starting XI'), ...squad.filter((p) => p.starting).map((p) => playerRow(p, fxKey, opt)),
+    group('Bench'), ...squad.filter((p) => !p.starting).map((p) => playerRow(p, fxKey, opt)),
+  ];
+  return [
+    tiles([
+      ['Team', d.team_name || '–', d.manager],
+      ['Overall points', d.overall_points != null ? d.overall_points.toLocaleString() : '–'],
+      ['Overall rank', d.overall_rank != null ? d.overall_rank.toLocaleString() : '–'],
+      ['In the bank', money(d.bank_m)],
+      ['Squad value', money(d.squad_value_m)],
+      d.active_chip ? ['Chip played', cap(d.active_chip)] : null,
+    ]),
+    table(columns, rows),
+    note(`Squad as of gameweek ${d.picks_from_gw}, the last deadline. Transfers made since then are not shown.`),
+    legend(),
+  ];
+}
+
+function leagueView(d) {
+  const columns = [col('Rank', 'num'), col('Team'), col('Manager'),
+    col('GW', 'num', 'Points this gameweek'), col('Total', 'num')];
+  return [
+    table(columns, d.standings.map((r) => h('tr', { class: r.team_id === state.teamId ? 'me' : null },
+      h('td', { class: 'num' }, String(r.rank)),
+      h('td', { class: 'name' }, r.team, r.team_id === state.teamId ? h('span', { class: 'badge' }, 'You') : null),
+      h('td', null, r.manager),
+      h('td', { class: 'num' }, String(r.gw_points)),
+      h('td', { class: 'num strong' }, r.total.toLocaleString())))),
+    note(`${d.league}: top ${d.standings.length} shown.`),
+  ];
+}
+
+/* ---------- explore views ---------- */
+// Each view returns: title, blurb, controls, fetch (or `need` when input is missing), render, ask.
+
+const TABS = [['captain', 'Captain'], ['transfers', 'Transfers'], ['fixtures', 'Fixtures'],
+  ['differentials', 'Differentials'], ['injuries', 'Injuries'], ['team', 'My team'], ['league', 'Mini-league']];
+
+const views = {
+  captain() {
+    const p = state.p.captain;
+    const mine = !!state.teamId && p.scope === 'mine';
+    const gw = nextGw();
+    return {
+      title: gw ? `Captain picks for GW${gw}` : 'Captain picks',
+      blurb: 'Ranked on recent form and points per game, weighted by the next fixture.',
+      controls: [
+        segmented('Rank', [
+          ['mine', 'My starting XI', state.teamId ? '' : 'Enter your team ID in the top bar first'],
+          ['all', 'All players'],
+        ], mine ? 'mine' : 'all', (v) => { p.scope = v; load(); }),
+        select('Show', [[5, 'Top 5'], [10, 'Top 10'], [15, 'Top 15']], p.top, (v) => { p.top = +v; load(); }),
+      ],
+      fetch: () => api('/api/captain?' + qs({ team_id: mine ? state.teamId : null, top_n: p.top })),
+      render: (d) => [playerTable(d.ranking, { score: 'captain_score' }), note('Score: ' + d.method), legend()],
+      ask: mine ? 'Who should I captain this gameweek? Give your top pick and one alternative.'
+        : 'Who are the best captain options this gameweek, and why?',
+    };
+  },
+
+  transfers() {
+    const p = state.p.transfers;
+    const posName = POSITIONS.find(([v]) => v === p.position)[1].toLowerCase();
+    return {
+      title: 'Transfer targets',
+      blurb: 'Available players under your price cap, ranked on form and upcoming fixtures.',
+      controls: [
+        select('Position', POSITIONS, p.position, (v) => { p.position = v; load(); }),
+        numberInput('Max price (£m)', p.max, { min: 3.5, max: 16, step: 0.5 }, (v) => { if (v !== '') { p.max = v; load(); } }),
+        select('Fixtures over', GW_WINDOWS, p.gws, (v) => { p.gws = +v; load(); }),
+        state.teamId ? checkbox('Hide players I own', p.hideOwned, (v) => { p.hideOwned = v; load(); }) : null,
+      ],
+      fetch: () => api('/api/transfers?' + qs({
+        position: p.position, max_price: p.max, n_gws: p.gws,
+        exclude_team_id: state.teamId && p.hideOwned ? state.teamId : null,
+      })),
+      render: (d) => [playerTable(d.candidates, { score: 'score' }), note('Score: ' + d.note), legend()],
+      ask: `Suggest the best ${posName} to buy under £${p.max}m for the next ${p.gws} gameweeks, and explain your top pick.`,
+    };
+  },
+
+  fixtures() {
+    const p = state.p.fixtures;
+    return {
+      title: 'Fixture difficulty',
+      blurb: "Every team's upcoming run, easiest first.",
+      controls: [select('Show', GW_WINDOWS, p.gws, (v) => { p.gws = +v; load(); })],
+      fetch: () => api('/api/fixtures?' + qs({ n_gws: p.gws })),
+      render: (d) => [fixtureGrid(d), legend()],
+      ask: `Which teams have the best fixtures over the next ${p.gws} gameweeks, and which of their players should I target?`,
+    };
+  },
+
+  differentials() {
+    const p = state.p.differentials;
+    return {
+      title: 'Differentials',
+      blurb: 'In-form players that few managers own.',
+      controls: [
+        numberInput('Owned by at most (%)', p.own, { min: 0.5, max: 50, step: 0.5 }, (v) => { if (v !== '') { p.own = v; load(); } }),
+        select('Position', [['', 'Any position'], ...POSITIONS], p.position, (v) => { p.position = v; load(); }),
+        numberInput('Max price (£m)', p.max, { min: 3.5, max: 16, step: 0.5, placeholder: 'Any' }, (v) => { p.max = v; load(); }),
+      ],
+      fetch: () => api('/api/differentials?' + qs({ max_ownership: p.own, position: p.position, max_price: p.max })),
+      render: (d) => [playerTable(d.players), note('Sorted by form. Only available players with at least 90 minutes played.'), legend()],
+      ask: `Pick the three best differentials owned by under ${p.own}% of managers and make the case for each.`,
+    };
+  },
+
+  injuries() {
+    const p = state.p.injuries;
+    const teams = state.meta ? state.meta.teams : [];
+    return {
+      title: 'Injuries and suspensions',
+      blurb: 'Flagged players with the latest news, most-owned first.',
+      controls: [select('Team', [['', 'All teams'], ...teams.map((t) => [t, t])], p.team, (v) => { p.team = v; load(); })],
+      fetch: () => api('/api/injuries?' + qs({ team: p.team })),
+      render: (d) => [injuryTable(d), d.count > d.players.length ? note(`Showing the ${d.players.length} most-owned of ${d.count} flagged players.`) : null],
+      ask: p.team ? `Summarise the injury news for ${p.team} and what it means for FPL.`
+        : 'Summarise the most important injury news for FPL managers right now.',
+    };
+  },
+
+  team() {
+    return {
+      title: 'My team',
+      blurb: 'Your current squad, with form and upcoming fixtures.',
+      need: state.teamId ? null : 'Enter your team ID in the top bar to see your squad. It is the number in the URL of your FPL Points page, for example fantasy.premierleague.com/entry/1234567/event/12.',
+      fetch: () => api('/api/team/' + state.teamId),
+      render: squadView,
+      ask: state.teamId ? 'Review my team. Where are the weak spots, and what one transfer would you make?' : null,
+    };
+  },
+
+  league() {
+    const p = state.p.league;
+    const id = parseInt(p.id, 10);
+    return {
+      title: 'Mini-league',
+      blurb: 'Standings for a classic league.',
+      controls: [field('League ID', h('input', {
+        class: 'field', inputMode: 'numeric', value: p.id, placeholder: 'e.g. 314',
+        title: "The number in the league's URL: fantasy.premierleague.com/leagues/314/standings/c",
+        oninput: debounce((e) => { p.id = e.target.value.replace(/\D/g, ''); store.set('fpl.leagueId', p.id); load(); }, 500),
+      }))],
+      need: id ? null : "Enter a league ID to see its standings. It is the number in the league's URL, for example fantasy.premierleague.com/leagues/314/standings/c.",
+      fetch: () => api('/api/league/' + id),
+      render: leagueView,
+      ask: id ? `Summarise mini-league ${id}: who is leading, and who had the best gameweek?` : null,
+    };
+  },
+};
+
+/* ---------- explore rendering ---------- */
+
+let loadSeq = 0;
+
+function showTab(name) {
+  state.tab = name;
+  history.replaceState(null, '', '#' + name);  // makes each tab linkable
+  for (const b of $('#tabs').children) b.setAttribute('aria-selected', String(b.dataset.tab === name));
+  const v = views[name]();
+  $('#panel').replaceChildren(
+    h('div', { class: 'panel-head' },
+      h('div', null, h('h2', null, v.title), h('p', null, v.blurb)),
+      h('button', { class: 'btn', type: 'button', id: 'askAbout', onclick: () => { const q = views[state.tab]().ask; if (q) askBot(q); } }, 'Ask about this')),
+    h('div', { class: 'controls' }, v.controls || []));
+  $('#results').replaceChildren();
+  load();
+}
+
+async function load() {
+  const v = views[state.tab]();
+  const results = $('#results');
+  const seq = ++loadSeq;
+  $('#askAbout').hidden = !v.ask;
+  if (v.need) { results.classList.remove('stale'); results.replaceChildren(notice(v.need)); return; }
+  if (results.childElementCount) results.classList.add('stale');
+  else results.replaceChildren(h('p', { class: 'note' }, 'Loading…'));
+  let nodes;
+  try { nodes = v.render(await v.fetch()); }
+  catch (e) {
+    nodes = h('div', { class: 'notice error' }, e.message,
+      h('div', null, h('button', { class: 'btn small', type: 'button', onclick: load }, 'Try again')));
+  }
+  if (seq !== loadSeq) return;  // a newer request superseded this one
+  results.classList.remove('stale');
+  results.replaceChildren(...[nodes].flat().filter(Boolean));
+}
+
+function until(date) {
+  const mins = Math.floor((date - Date.now()) / 60000);
+  if (mins <= 0) return 'deadline passed';
+  const d = Math.floor(mins / 1440), hrs = Math.floor((mins % 1440) / 60);
+  return 'in ' + (d ? `${d}d ${hrs}h` : hrs ? `${hrs}h ${mins % 60}m` : `${mins}m`);
+}
+
+function renderGameweek() {
+  const g = state.meta.gameweek;
+  const deadline = new Date(g.deadline_utc);
+  const when = deadline.toLocaleString(undefined,
+    { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  $('#gw').replaceChildren(...[
+    h('span', null, h('strong', null, `GW${g.next_gameweek}`), ` deadline ${when}`),
+    h('span', { class: 'pill' }, until(deadline)),
+    g.double_gw_teams.length ? h('span', { class: 'pill', title: g.double_gw_teams.join(', ') }, `Double: ${g.double_gw_teams.length} teams`) : null,
+    g.blank_gw_teams.length ? h('span', { class: 'pill', title: g.blank_gw_teams.join(', ') }, `Blank: ${g.blank_gw_teams.length} teams`) : null,
+  ].filter(Boolean));
+}
+
+/* ---------- chat ---------- */
+
+const messages = $('#messages');
+const chatInput = $('#chatInput');
+let busy = false;
+
+// The server keeps no chat state, so the page holds the conversation and sends it with each question.
+const chatHistory = [];
+const HISTORY_TURNS = 12;
+const locked = () => !!(state.meta && state.meta.chat_locked) && !state.password;
+
+const TOOL_LABELS = {
+  get_player: 'player stats', compare_players: 'player comparison', fixture_difficulty: 'fixture difficulty',
+  get_my_team: 'your squad', suggest_captain: 'captain ranking', suggest_transfers: 'transfer targets',
+  injury_news: 'injury news', find_differentials: 'differentials', gameweek_info: 'gameweek info',
+  mini_league: 'mini-league standings',
+};
+const STARTERS = [
+  'Who should I captain this gameweek?',
+  'Which teams have the easiest fixtures over the next 5 gameweeks?',
+  'Who are the best midfielders under £7.5m right now?',
+  'Are there any double or blank gameweeks coming up?',
+];
+
+const escapeHtml = (s) => s.replace(/[&<>"']/g,
+  (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// Inline Markdown. Input is escaped first, so the result is safe to use as HTML.
+function inline(s) {
+  return escapeHtml(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+}
+
+// A small Markdown renderer: paragraphs, headings, lists, tables, rules.
+function markdown(src) {
+  const lines = src.replace(/\r/g, '').split('\n');
+  const out = [];
+  let para = [], list = null;
+  const flushPara = () => { if (para.length) { out.push('<p>' + para.map(inline).join('<br>') + '</p>'); para = []; } };
+  const flushList = () => {
+    if (!list) return;
+    const open = list.tag === 'ol' && list.start !== 1 ? `<ol start="${list.start}">` : `<${list.tag}>`;
+    out.push(open + list.items.map((i) => '<li>' + inline(i) + '</li>').join('') + `</${list.tag}>`);
+    list = null;
+  };
+  const flush = () => { flushPara(); flushList(); };
+  const isRow = (l) => /^\s*\|.*\|\s*$/.test(l || '');
+  const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+  const item = (tag, text, start) => {
+    flushPara();
+    if (!list || list.tag !== tag) { flushList(); list = { tag, items: [], start: start || 1 }; }
+    list.items.push(text);
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let m;
+    if (!line.trim()) { flush(); continue; }
+    if (isRow(line) && /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(lines[i + 1] || '')) {
+      flush();
+      const head = cells(line), body = [];
+      for (i += 2; i < lines.length && isRow(lines[i]); i++) body.push(cells(lines[i]));
+      i--;
+      out.push('<div class="md-table"><table><thead><tr>'
+        + head.map((c) => '<th>' + inline(c) + '</th>').join('') + '</tr></thead><tbody>'
+        + body.map((r) => '<tr>' + r.map((c) => '<td>' + inline(c) + '</td>').join('') + '</tr>').join('')
+        + '</tbody></table></div>');
+      continue;
+    }
+    if ((m = line.match(/^\s{0,3}#{1,6}\s+(.*?)\s*#*\s*$/))) { flush(); out.push('<h4>' + inline(m[1]) + '</h4>'); continue; }
+    if (/^\s*([-*_])\s*(\1\s*){2,}$/.test(line)) { flush(); out.push('<hr>'); continue; }
+    if ((m = line.match(/^\s*[-*•]\s+(.*)$/))) { item('ul', m[1]); continue; }
+    if ((m = line.match(/^\s*(\d+)[.)]\s+(.*)$/))) { item('ol', m[2], +m[1]); continue; }
+    if (list && /^\s{2,}\S/.test(line)) { list.items[list.items.length - 1] += ' ' + line.trim(); continue; }
+    flushList();
+    para.push(line.trim());
+  }
+  flush();
+  return out.join('');
+}
+
+function scrollDown() { messages.scrollTop = messages.scrollHeight; }
+
+function addMessage(kind, text, tools) {
+  const welcome = $('.welcome', messages);
+  if (welcome) welcome.remove();
+  const el = h('div', { class: 'msg ' + kind });
+  if (kind === 'bot') {
+    el.innerHTML = markdown(text);
+    const used = [...new Set((tools || []).map((t) => TOOL_LABELS[t] || t))];
+    if (used.length) el.append(h('div', { class: 'used' }, 'Live data checked: ' + used.join(', ')));
+  } else {
+    el.textContent = text;
+  }
+  messages.append(el);
+  scrollDown();
+  return el;
+}
+
+function updateLock() {
+  const isLocked = locked();
+  chatInput.disabled = isLocked;
+  chatInput.placeholder = isLocked ? 'Enter the password to chat' : 'Ask about players, captains, transfers…';
+  $('#sendBtn').disabled = isLocked || busy;
+}
+
+// Shown when the server requires a password for Ask. Checks it without spending a Claude call.
+function unlockForm() {
+  const input = h('input', { class: 'field', type: 'password', placeholder: 'Password', autocomplete: 'current-password', 'aria-label': 'Chat password' });
+  const error = h('p', { class: 'unlock-error', role: 'alert' });
+  const form = h('form', {
+    class: 'unlock',
+    onsubmit: async (e) => {
+      e.preventDefault();
+      if (!input.value) return;
+      try {
+        await api('/api/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: input.value }) });
+      } catch (err) { error.textContent = err.message; input.select(); return; }
+      state.password = input.value;
+      store.set('fpl.chatPassword', state.password);
+      if (messages.querySelector('.msg')) { wrap.remove(); updateLock(); } else showWelcome();
+      chatInput.focus();
+    },
+  }, input, h('button', { class: 'btn primary', type: 'submit' }, 'Unlock'));
+  const wrap = h('div', { class: 'unlock-wrap' },
+    h('p', null, 'This chat is password-protected. Explore works without it.'), form, error);
+  return wrap;
+}
+
+function showWelcome() {
+  const configured = !state.meta || state.meta.chat_configured;
+  messages.replaceChildren(h('div', { class: 'welcome' },
+    configured ? null : h('p', { class: 'notice' }, 'Chat is not set up yet: it needs an API key. Add GEMINI_API_KEY (free) or ANTHROPIC_API_KEY, then restart the server. Explore works without it.'),
+    locked() ? unlockForm() : [
+      h('p', null, 'Ask anything about your FPL team. Answers use live data from the FPL API.'),
+      STARTERS.map((q) => h('button', { class: 'btn', type: 'button', onclick: () => send(q) }, q)),
+      state.meta && state.meta.provider === 'gemini' ? h('p', { class: 'fineprint' }, "Chat runs on Google's free Gemini service. Google may use questions and answers to improve its products, so don't share anything private.") : null,
+    ]));
+  updateLock();
+}
+
+function setPane(pane) {
+  document.body.dataset.pane = pane;
+  for (const b of document.querySelectorAll('.switch button')) b.setAttribute('aria-pressed', String(b.dataset.pane === pane));
+}
+
+async function send(text) {
+  text = (text || '').trim();
+  if (!text || busy || locked()) return;
+  busy = true;
+  updateLock();
+  addMessage('user', text);
+  const typing = h('div', { class: 'msg bot typing' }, h('i'), h('i'), h('i'), 'Checking live FPL data…');
+  messages.append(typing);
+  scrollDown();
+  try {
+    const r = await api('/api/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text, team_id: state.teamId,
+        history: chatHistory.slice(-HISTORY_TURNS), password: state.password || null,
+      }),
+    });
+    typing.remove();
+    addMessage('bot', r.reply, r.tools);
+    chatHistory.push({ role: 'user', text }, { role: 'assistant', text: r.reply });
+  } catch (e) {
+    typing.remove();
+    addMessage('error', e.message);
+    if (e.status === 401) {  // the saved password is wrong or was changed: ask for it again
+      state.password = '';
+      store.set('fpl.chatPassword', '');
+      messages.append(unlockForm());
+      scrollDown();
+    }
+  } finally {
+    busy = false;
+    updateLock();
+  }
+}
+
+// Send a question from the Explore side. If it can't go yet, park it in the input.
+function askBot(text) {
+  setPane('ask');
+  if (locked()) { chatInput.value = text; const pw = $('.unlock input'); if (pw) pw.focus(); return; }
+  if (busy) { chatInput.value = text; chatInput.focus(); return; }
+  send(text);
+}
+
+function autoGrow() {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight + 2, 140) + 'px';
+}
+
+/* ---------- wiring ---------- */
+
+$('#tabs').append(...TABS.map(([name, label]) => h('button', {
+  class: 'tab', type: 'button', role: 'tab', 'data-tab': name, 'aria-selected': 'false',
+  onclick: () => showTab(name),
+}, label)));
+
+for (const b of document.querySelectorAll('.switch button')) b.addEventListener('click', () => setPane(b.dataset.pane));
+
+const teamInput = $('#teamId');
+teamInput.value = state.teamId || '';
+teamInput.addEventListener('input', debounce(() => {
+  const v = parseInt(teamInput.value.replace(/\D/g, ''), 10);
+  state.teamId = v > 0 ? v : null;
+  store.set('fpl.teamId', state.teamId ? String(state.teamId) : '');
+  showTab(state.tab);
+}, 500));
+
+$('#composer').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (busy || locked()) return;
+  const text = chatInput.value;
+  chatInput.value = '';
+  autoGrow();
+  send(text);
+});
+chatInput.addEventListener('input', autoGrow);
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#composer').requestSubmit(); }
+});
+
+$('#newChat').addEventListener('click', () => {
+  if (busy) return;
+  chatHistory.length = 0;
+  showWelcome();
+});
+
+async function init() {
+  showWelcome();
+  try {
+    state.meta = await api('/api/meta');
+    renderGameweek();
+    $('#model').textContent = state.meta.model ? '· ' + state.meta.model : '';
+    if (!messages.querySelector('.msg')) showWelcome();
+  } catch (e) {
+    $('#gw').textContent = e.message;
+  }
+  showTab(views[location.hash.slice(1)] ? location.hash.slice(1) : state.tab);
+}
+window.addEventListener('hashchange', () => {
+  const name = location.hash.slice(1);
+  if (views[name] && name !== state.tab) showTab(name);
+});
+init();
+</script>
+</body>
+</html>

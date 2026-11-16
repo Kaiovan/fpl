@@ -328,3 +328,22 @@ def mini_league(league_id: int) -> dict:
                            "manager": r["player_name"], "total": r["total"],
                            "gw_points": r["event_total"], "team_id": r["entry"]}
                           for r in rows]}
+
+
+# ---------- web UI helpers (not exposed to Claude as tools) ----------
+
+def fixture_grid(n_gws: int = 5) -> dict:
+    """Per-gameweek fixtures for every team, easiest run first."""
+    start = _next_gw()
+    last = min(start + n_gws - 1, _bootstrap()["events"][-1]["id"])
+    rows = []
+    for tid, t in _teams().items():
+        fxs = _team_fixtures(tid, n_gws)
+        rows.append({"team": t["name"], "short": t["short_name"], "fixtures": fxs,
+                     "avg_fdr": round(sum(f["fdr"] for f in fxs) / len(fxs), 2) if fxs else None})
+    rows.sort(key=lambda r: (r["avg_fdr"] is None, r["avg_fdr"] or 0, -len(r["fixtures"])))
+    return {"gameweeks": list(range(start, last + 1)), "teams": rows}
+
+
+def team_names() -> list:
+    return sorted(t["name"] for t in _teams().values())

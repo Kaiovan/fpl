@@ -98,6 +98,26 @@ TOOLS = [
 _FUNCS = {t["name"]: getattr(fpl, t["name"]) for t in TOOLS}
 
 
+def _without_defaults(schema):
+    """Gemini accepts a subset of JSON Schema that has no "default" keyword."""
+    if isinstance(schema, dict):
+        return {k: _without_defaults(v) for k, v in schema.items() if k != "default"}
+    if isinstance(schema, list):
+        return [_without_defaults(v) for v in schema]
+    return schema
+
+
+def gemini_tools() -> list:
+    """The same tools in Gemini's functionDeclarations format."""
+    out = []
+    for t in TOOLS:
+        decl = {"name": t["name"], "description": t["description"]}
+        if t["input_schema"].get("properties"):  # a tool with no inputs declares no parameters
+            decl["parameters"] = _without_defaults(t["input_schema"])
+        out.append(decl)
+    return out
+
+
 def run_tool(name: str, args: dict) -> str:
     """Run a tool and return a JSON string. Errors are returned, not raised,
     so Claude can tell the user what went wrong."""
