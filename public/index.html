@@ -198,14 +198,9 @@
 
   /* club shirt */
   .kit { flex: none; display: inline-block; width: 36px; height: 36px; filter: drop-shadow(0 0 .7px var(--kit-edge)) drop-shadow(0 1px 1px rgba(0, 0, 0, .25)); }
-  .kit-body {
-    display: grid; place-items: end center; width: 100%; height: 100%; padding-bottom: 6px;
-    clip-path: polygon(22% 4%, 38% 4%, 50% 15%, 62% 4%, 78% 4%, 100% 24%, 87% 42%, 78% 34%, 78% 96%, 22% 96%, 22% 34%, 13% 42%, 0 24%);
-    background: linear-gradient(var(--kit-2, #888) 0 22%, var(--kit-1, #777) 22%);
-    color: var(--kit-ink, #fff); font: 700 11px/1 var(--display); letter-spacing: .02em;
-  }
+  .kit svg { width: 100%; height: 100%; overflow: visible; }
+  .kit text { font: 700 29px/1 var(--display); letter-spacing: .02em; paint-order: stroke; stroke-linejoin: round; }
   .kit.lg { width: 50px; height: 50px; }
-  .kit.lg .kit-body { font-size: 14px; padding-bottom: 9px; }
 
   /* tables */
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
@@ -274,6 +269,107 @@
   .tile .k { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); }
   .tile .v { font: 700 30px/1.15 var(--display); overflow-wrap: anywhere; }
   .tile .s { font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }
+  .tile .v .chips { padding: 6px 0 2px; }
+  .tile .v .blank { font-size: inherit; }
+  .tile .s .chips { display: inline-flex; vertical-align: middle; }
+
+  /* mini-league: rival radar and head to head */
+  .section { margin-top: 24px; }
+  .section-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 10px; }
+  .section-head h3 { margin: 0; font: 700 20px/1.1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+  .section-head p { margin: 0; font-size: 13px; color: var(--ink-2); max-width: 70ch; }
+  .results > .controls { margin-bottom: 14px; }
+  .results > .controls .control { min-width: 0; max-width: 100%; }
+  .results > .controls .field { max-width: 100%; text-overflow: ellipsis; }
+  .split { display: grid; gap: 12px; padding: 16px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-main { flex: 1; min-width: 0; }
+  .bar-label { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+  .bar-label .badge { margin-left: 0; }
+  .bar-val { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bar { height: 8px; border-radius: 4px; background: var(--wash); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--green), var(--cyan)); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip-pill {
+    display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    background: var(--primary-wash); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-strong);
+  }
+  .role { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--wash); }
+  .role.captain { background: var(--primary); color: var(--on-primary); }
+  .role.none { background: transparent; box-shadow: inset 0 0 0 1px var(--line-strong); color: var(--ink-2); }
+
+  /* squad planner */
+  .planner-wrap { container-type: inline-size; }
+  .planner { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+  @container (min-width: 860px) { .planner { grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); } .pside { position: sticky; top: 0; } }
+  .planner-bar { margin-bottom: 14px; }
+  .planner-bar .seg { flex-wrap: wrap; }
+  .flash { margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--surface)); font-weight: 600; }
+  .pitch {
+    position: relative; overflow: hidden; padding: 16px 6px 10px; border-radius: 18px;
+    background: repeating-linear-gradient(180deg, #1d8a4b 0 46px, #197c43 46px 92px); box-shadow: var(--shadow);
+  }
+  .pitch::before { content: ""; position: absolute; inset: 8px; border: 2px solid rgba(255, 255, 255, .35); border-radius: 8px; pointer-events: none; }
+  .pitch::after { content: ""; position: absolute; top: 8px; left: 50%; width: 46%; height: 64px; transform: translateX(-50%); border: 2px solid rgba(255, 255, 255, .35); border-top: 0; pointer-events: none; }
+  .pitch-row { position: relative; z-index: 1; display: flex; justify-content: center; gap: 4px; margin: 6px 0; }
+  .pcard {
+    position: relative; flex: 0 1 92px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 2px; border: 2px solid transparent; border-radius: 12px; background: transparent; color: #fff; cursor: grab;
+    transition: background .12s, border-color .12s;
+  }
+  .pcard:hover { background: rgba(255, 255, 255, .12); }
+  .pcard:active { cursor: grabbing; }
+  .pcard.sel { border-color: #fff; background: rgba(255, 255, 255, .18); }
+  .pcard.drop { border-color: var(--green); background: rgba(0, 232, 143, .25); }
+  .swapping .pcard:not(.sel), .bench.swapping .pcard:not(.sel) { border-style: dashed; border-color: rgba(255, 255, 255, .55); }
+  .pcard.empty { cursor: pointer; }
+  .pc-shirt { position: relative; }
+  .pcard .kit { width: 46px; height: 46px; }
+  .pc-band, .pc-flag {
+    position: absolute; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+    font: 800 10px/1 var(--font); box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  }
+  .pc-band { top: -4px; right: -8px; background: #fff; color: #1a0530; }
+  .pc-band.tc { width: 22px; border-radius: 9px; background: var(--gold); }
+  .pc-flag { top: -4px; left: -8px; background: var(--warn); color: #2b1c00; }
+  .pc-flag.out { background: var(--crit); color: #fff; }
+  .pc-name, .pc-price, .pc-fx > span {
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 4px; font-size: 11px; line-height: 16px;
+  }
+  .pc-name { padding: 0 6px; background: rgba(12, 4, 28, .88); font-size: 12px; font-weight: 700; }
+  .pc-price { padding: 0 6px; background: rgba(255, 255, 255, .92); color: #1a0530; font-weight: 700; }
+  .pc-fx { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 100%; }
+  .pc-fx > span { padding: 0 5px; font-weight: 600; }
+  .pc-fx .pc-blank { background: rgba(12, 4, 28, .6); color: #fff; }
+  .empty-kit svg { width: 100%; height: 100%; }
+  .bench { margin-top: 10px; padding: 8px 6px 6px; border-radius: 16px; background: linear-gradient(180deg, #2a2342, #1d1830); box-shadow: var(--shadow); }
+  .bench-label { padding: 0 8px; font: 700 13px/1.4 var(--display); letter-spacing: .08em; text-transform: uppercase; color: rgba(255, 255, 255, .75); }
+  .bench .pitch-row { margin: 2px 0; }
+  .pside { padding: 16px; }
+  .pside h3 { margin: 0 0 4px; font: 700 22px/1.1 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+  .pside .sub { margin: 0 0 10px; }
+  .pp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .pp-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .pside .fxs { margin-top: 4px; }
+  .warn { margin: 6px 0 12px; padding-left: 18px; color: var(--ink); }
+  .warn li { margin: 2px 0; }
+  .ok { margin: 6px 0 12px; font-weight: 600; color: var(--accent); }
+  .tlist { display: grid; gap: 6px; margin: 8px 0 12px; }
+  .trow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--wash); }
+  .trow > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .trow small { font-weight: 500; color: var(--ink-2); }
+  .trow .t-out { color: var(--crit); }
+  .trow .t-in { color: var(--accent); }
+  .pick-tools { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin: 10px 0; }
+  .pick-tools .control { flex: 1 1 140px; }
+  .putback { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+  .picks { display: grid; max-height: 520px; overflow-y: auto; margin: 0 -16px -16px; border-top: 1px solid var(--line); }
+  .pick-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+  .pick-row:hover { background: var(--wash); }
+  .pick-row .pr-main { flex: 1; min-width: 0; }
+  .pick-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick-row .fxs { margin-top: 3px; }
+  .pick-row .fx { height: 18px; padding: 0 5px; font-size: 11px; }
 
   .notice {
     padding: 14px 16px; border: 1px dashed var(--line-strong); border-radius: 14px;
@@ -452,7 +548,7 @@ const state = {
     fixtures: { gws: 5 },
     differentials: { own: 5, position: '', max: '' },
     injuries: { team: '' },
-    league: { id: store.get('fpl.leagueId') },
+    league: { id: store.get('fpl.leagueId'), view: store.get('fpl.leagueView') || 'radar', rival: null },
   },
 };
 const nextGw = () => state.meta ? state.meta.gameweek.next_gameweek : null;
@@ -521,6 +617,7 @@ const ICONS = {
   differentials: '<path d="M12 3l8 9-8 9-8-9z"/>',
   injuries: '<path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5z"/>',
   team: '<path d="M8 4l4 2 4-2 5 4-3 3-2-1v10H8V10l-2 1-3-3z"/>',
+  planner: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 9h3v6H3M21 9h-3v6h3"/><circle cx="12" cy="12" r="2.2"/>',
   league: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H4.5a3.5 3.5 0 0 0 3.6 3.6M16 6h3.5a3.5 3.5 0 0 1-3.6 3.6M12 13v4M8.5 20h7"/>',
 };
 function icon(name) {
@@ -529,23 +626,86 @@ function icon(name) {
   return el;
 }
 
-// Club colours for the little shirts: [code, shirt, trim, text on shirt].
+// Home kits for the little shirts: [code, pattern, main, second, text on shirt].
+//   solid   – shirt in main, collar and cuffs in second
+//   sleeves – body in main, sleeves and collar in second (Arsenal, Villa…)
+//   stripes – vertical main/second stripes, sleeves in main
+//   hoops   – horizontal main/second bands, sleeves in main
 const CLUBS = {
-  'Arsenal': ['ARS', '#ef0107', '#ffffff', '#ffffff'], 'Aston Villa': ['AVL', '#670e36', '#95bfe5', '#ffffff'],
-  'Bournemouth': ['BOU', '#da291c', '#111111', '#ffffff'], 'Brentford': ['BRE', '#e30613', '#ffffff', '#ffffff'],
-  'Brighton': ['BHA', '#0057b8', '#ffffff', '#ffffff'], 'Chelsea': ['CHE', '#034694', '#ffffff', '#ffffff'],
-  'Coventry City': ['COV', '#78bee9', '#ffffff', '#0b0b0b'], 'Crystal Palace': ['CRY', '#1b458f', '#c4122e', '#ffffff'],
-  'Everton': ['EVE', '#003399', '#ffffff', '#ffffff'], 'Fulham': ['FUL', '#ffffff', '#111111', '#0b0b0b'],
-  'Hull City': ['HUL', '#f5a12d', '#111111', '#0b0b0b'], 'Ipswich Town': ['IPS', '#3a64a3', '#ffffff', '#ffffff'],
-  'Leeds': ['LEE', '#ffffff', '#1d428a', '#0b0b0b'], 'Liverpool': ['LIV', '#c8102e', '#00b2a9', '#ffffff'],
-  'Man City': ['MCI', '#6cabdd', '#1c2c5b', '#0b0b0b'], 'Man Utd': ['MUN', '#da291c', '#fbe122', '#ffffff'],
-  'Newcastle': ['NEW', '#241f20', '#ffffff', '#ffffff'], "Nott'm Forest": ['NFO', '#dd0000', '#ffffff', '#ffffff'],
-  'Spurs': ['TOT', '#ffffff', '#132257', '#0b0b0b'], 'Sunderland': ['SUN', '#eb172b', '#ffffff', '#ffffff'],
+  'Arsenal': ['ARS', 'sleeves', '#db0007', '#ffffff', '#ffffff'],
+  'Aston Villa': ['AVL', 'sleeves', '#670e36', '#95bfe5', '#ffffff'],
+  'Bournemouth': ['BOU', 'stripes', '#da291c', '#111111', '#ffffff'],
+  'Brentford': ['BRE', 'stripes', '#e30613', '#ffffff', '#111111'],
+  'Brighton': ['BHA', 'stripes', '#0057b8', '#ffffff', '#0b2a5b'],
+  'Burnley': ['BUR', 'sleeves', '#6c1d45', '#99d6ea', '#ffffff'],
+  'Chelsea': ['CHE', 'solid', '#034694', '#ffffff', '#ffffff'],
+  'Coventry City': ['COV', 'solid', '#78bee9', '#ffffff', '#0b2a5b'],
+  'Crystal Palace': ['CRY', 'stripes', '#c4122e', '#1b458f', '#ffffff'],
+  'Everton': ['EVE', 'solid', '#003399', '#ffffff', '#ffffff'],
+  'Fulham': ['FUL', 'solid', '#ffffff', '#111111', '#111111'],
+  'Hull City': ['HUL', 'solid', '#f5a12d', '#111111', '#111111'],
+  'Ipswich Town': ['IPS', 'solid', '#3a64a3', '#ffffff', '#ffffff'],
+  'Leeds': ['LEE', 'solid', '#ffffff', '#1d428a', '#1d428a'],
+  'Leicester': ['LEI', 'solid', '#003090', '#fdbe11', '#ffffff'],
+  'Liverpool': ['LIV', 'solid', '#c8102e', '#c8102e', '#ffffff'],
+  'Luton': ['LUT', 'solid', '#f78f1e', '#002d62', '#002d62'],
+  'Man City': ['MCI', 'solid', '#6cabdd', '#ffffff', '#1c2c5b'],
+  'Man Utd': ['MUN', 'solid', '#da291c', '#ffffff', '#ffffff'],
+  'Middlesbrough': ['MID', 'solid', '#e11b22', '#ffffff', '#ffffff'],
+  'Newcastle': ['NEW', 'stripes', '#111111', '#ffffff', '#ffffff'],
+  'Norwich': ['NOR', 'solid', '#fff200', '#00a650', '#00602f'],
+  "Nott'm Forest": ['NFO', 'solid', '#dd0000', '#ffffff', '#ffffff'],
+  'QPR': ['QPR', 'hoops', '#1d5ba4', '#ffffff', '#0b2a5b'],
+  'Sheffield Utd': ['SHU', 'stripes', '#ee2737', '#ffffff', '#111111'],
+  'Southampton': ['SOU', 'stripes', '#d71920', '#ffffff', '#111111'],
+  'Spurs': ['TOT', 'solid', '#ffffff', '#132257', '#132257'],
+  'Stoke': ['STK', 'stripes', '#e03a3e', '#ffffff', '#111111'],
+  'Sunderland': ['SUN', 'stripes', '#eb172b', '#ffffff', '#111111'],
+  'Watford': ['WAT', 'solid', '#fbee23', '#111111', '#111111'],
+  'West Brom': ['WBA', 'stripes', '#122f67', '#ffffff', '#ffffff'],
+  'West Ham': ['WHU', 'sleeves', '#7a263a', '#1bb1e7', '#ffffff'],
+  'Wolves': ['WOL', 'solid', '#fdb913', '#231f20', '#231f20'],
 };
+
+// Shirt drawn in a 100×100 box: torso with a V neck, two short sleeves, and cuff bands.
+const SHIRT = {
+  torso: 'M22 4H38L50 15L62 4H78V96H22Z',
+  sleeves: 'M22 4L0 24L13 42L22 34ZM78 4L100 24L87 42L78 34Z',
+  cuffs: 'M0 24L13 42L15.7 39.6L3.3 21ZM100 24L87 42L84.3 39.6L96.7 21Z',
+  collar: 'M38 4L50 15L62 4',
+};
+const isLight = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  return 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255) > 150;
+};
+let kitSeq = 0;
 function kit(team, size) {
-  const [code, shirt, trim, ink] = CLUBS[team] || [String(team || '').slice(0, 3).toUpperCase(), '#6b5a80', '#a99bbd', '#ffffff'];
-  return h('span', { class: 'kit' + (size ? ' ' + size : ''), title: team, style: `--kit-1:${shirt};--kit-2:${trim};--kit-ink:${ink}` },
-    h('span', { class: 'kit-body' }, code));
+  const [code, pattern, main, second, ink] = CLUBS[team]
+    || [String(team || '').slice(0, 3).toUpperCase(), 'solid', '#6b5a80', '#a99bbd', '#ffffff'];
+  const clip = 'kitclip' + (++kitSeq);
+  let body = `<rect x="0" y="0" width="100" height="100" fill="${main}"/>`;
+  if (pattern === 'stripes') {   // centre stripe in main, symmetrical edges
+    for (let x = 14, i = 0; x < 86; x += 8, i++) if (i % 2) body += `<rect x="${x}" y="0" width="8" height="100" fill="${second}"/>`;
+  } else if (pattern === 'hoops') {
+    for (let y = 16, i = 1; y < 100; y += 12, i++) if (i % 2) body += `<rect x="0" y="${y}" width="100" height="12" fill="${second}"/>`;
+  }
+  const sleeve = pattern === 'sleeves' ? second : main;
+  const cuffs = pattern === 'solid' && second !== main ? `<path d="${SHIRT.cuffs}" fill="${second}"/>` : '';
+  // Busy patterns get a heavier outline behind the code so it stays readable on the stripes.
+  const busy = pattern === 'stripes' || pattern === 'hoops';
+  const outline = isLight(ink) ? `rgba(0,0,0,${busy ? 0.9 : 0.45})` : `rgba(255,255,255,${busy ? 0.95 : 0.7})`;
+  const outlineW = busy ? 7 : 3;
+  const label = code.replace(/[^A-Z0-9]/gi, '');
+  const el = h('span', { class: 'kit' + (size ? ' ' + size : ''), title: team, role: 'img', 'aria-label': team });
+  el.innerHTML = `<svg viewBox="0 0 100 100" aria-hidden="true">
+    <defs><clipPath id="${clip}"><path d="${SHIRT.torso}"/></clipPath></defs>
+    <path d="${SHIRT.sleeves}" fill="${sleeve}"/>${cuffs}
+    <g clip-path="url(#${clip})">${body}</g>
+    <path d="M22 4V34M78 4V34" stroke="rgba(0,0,0,.18)" stroke-width="1.2" fill="none"/>
+    <path d="${SHIRT.collar}" stroke="${second === main ? 'rgba(0,0,0,.25)' : second}" stroke-width="4" fill="none" stroke-linejoin="round"/>
+    <text x="50" y="84" text-anchor="middle" fill="${ink}" stroke="${outline}" stroke-width="${outlineW}">${label}</text>
+  </svg>`;
+  return el;
 }
 
 const stat = (label, value, main) => h('div', { class: 'stat' + (main ? ' main' : '') },
@@ -620,10 +780,14 @@ function playerRow(p, fxKey, opt, rank) {
     h('td', { class: 'num' }, one(p.selected_by_pct) + '%'),
     h('td', null, fixtureChips(p[fxKey])),
     opt.score ? scoreCell(p[opt.score], opt.max) : null,
-    h('td', { class: 'act' }, h('button', {
-      class: 'btn small', type: 'button', title: `Ask the assistant about ${p.name}`,
-      onclick: () => askBot(`Tell me about ${p.full_name} (${p.team}): form, upcoming fixtures, and whether he's worth owning right now.`),
-    }, 'Ask')));
+    h('td', { class: 'act' }, askPlayerBtn(p)));
+}
+
+function askPlayerBtn(p) {
+  return h('button', {
+    class: 'btn small', type: 'button', title: `Ask the assistant about ${p.name}`,
+    onclick: () => askBot(`Tell me about ${p.full_name} (${p.team}): form, upcoming fixtures, and whether he's worth owning right now.`),
+  }, 'Ask');
 }
 
 function playerColumns(opt) {
@@ -700,25 +864,597 @@ function squadView(d) {
   ];
 }
 
+// "Compare" jumps to the head-to-head view against that manager.
+function compareBtn(teamId, name) {
+  if (!state.teamId || teamId === state.teamId) return null;
+  return h('button', {
+    class: 'btn small', type: 'button', title: `Compare your squad with ${name}`,
+    onclick: () => { Object.assign(state.p.league, { view: 'h2h', rival: teamId }); store.set('fpl.leagueView', 'h2h'); showTab('league'); },
+  }, 'Compare');
+}
+
 function leagueView(d) {
   const columns = [col('Rank', 'num'), col('Team'), col('Manager'),
-    col('GW', 'num', 'Points this gameweek'), col('Total', 'num')];
+    col('GW', 'num', 'Points this gameweek'), col('Total', 'num'), state.teamId ? col('', 'act') : null].filter(Boolean);
   return [
     table(columns, d.standings.map((r) => h('tr', { class: r.team_id === state.teamId ? 'me' : null },
       h('td', { class: 'num' }, String(r.rank)),
       h('td', { class: 'name' }, r.team, r.team_id === state.teamId ? h('span', { class: 'badge' }, 'You') : null),
       h('td', null, r.manager),
       h('td', { class: 'num' }, String(r.gw_points)),
-      h('td', { class: 'num strong' }, r.total.toLocaleString())))),
+      h('td', { class: 'num strong' }, r.total.toLocaleString()),
+      state.teamId ? h('td', { class: 'act' }, compareBtn(r.team_id, r.team)) : null))),
     note(`${d.league}: top ${d.standings.length} shown.`),
   ];
+}
+
+/* ---------- rival radar ---------- */
+
+// The radar costs ~100 FPL API calls on a cold server, so the page reuses it for 5 minutes.
+let radarCache = null;
+function getRadar(id) {
+  const key = id + ':' + (state.teamId || '');
+  if (!radarCache || radarCache.key !== key || Date.now() - radarCache.at > 5 * 60e3) {
+    const entry = { key, at: Date.now(), promise: api(`/api/league/${id}/radar?` + qs({ team_id: state.teamId })) };
+    entry.promise.catch(() => { if (radarCache === entry) radarCache = null; });
+    radarCache = entry;
+  }
+  return radarCache.promise;
+}
+
+const CHIP_SHORT = { wildcard: 'WC', freehit: 'FH', bboost: 'BB', '3xc': 'TC', manager: 'AM' };
+const pct = (v) => Math.round(v) + '%';
+
+function chipPills(list, names) {
+  if (list == null) return h('span', { class: 'blank' }, 'Unknown');
+  if (!list.length) return h('span', { class: 'blank' }, 'None left');
+  return h('div', { class: 'chips' }, list.map((c) => h('span', { class: 'chip-pill', title: names[c] || c }, CHIP_SHORT[c] || c)));
+}
+
+function roleTag(role) {
+  const kind = /captain/.test(role) ? ' captain' : role === 'not owned' ? ' none' : '';
+  return h('span', { class: 'role' + kind }, cap(role));
+}
+
+function section(title, blurb, ...body) {
+  return h('section', { class: 'section' },
+    h('div', { class: 'section-head' }, h('h3', null, title), blurb ? h('p', null, blurb) : null), body);
+}
+
+function eoTable(d, rows, showYou) {
+  const max = Math.max(100, ...rows.map((o) => o.rival_eo));
+  const columns = [col('Player'),
+    col('Rival EO', 'num', 'Effective ownership among your rivals: the share who start him, with captains counted twice. Over 100% means he is captained a lot.'),
+    col('Owned', 'num', 'Share of rivals with him in their 15'), col('Captained', 'num', 'Share of rivals captaining him'),
+    showYou ? col('You') : null, col('Next fixtures'), col('', 'act')].filter(Boolean);
+  return table(columns, rows.map((o) => {
+    const p = d.players[o.id];
+    return h('tr', null,
+      playerCell(p),
+      h('td', { class: 'num strong' }, h('span', { class: 'score' }, pct(o.rival_eo),
+        h('div', { class: 'meter' }, h('i', { style: `width:${Math.max(4, Math.round(100 * o.rival_eo / max))}%` })))),
+      h('td', { class: 'num' }, pct(o.owned_pct)),
+      h('td', { class: 'num' }, pct(o.captained_pct)),
+      showYou ? h('td', null, roleTag(o.my_role)) : null,
+      h('td', null, fixtureChips(p.next_3_fixtures)),
+      h('td', { class: 'act' }, askPlayerBtn(p)));
+  }));
+}
+
+function captainSplit(d) {
+  const caps = d.ownership.filter((o) => o.captained_pct > 0).sort((a, b) => b.captained_pct - a.captained_pct).slice(0, 6);
+  const mine = d.me && d.me.picks.find((pk) => pk.c);
+  const row = (p, value, label, badge) => h('div', { class: 'bar-row' }, kit(p.team),
+    h('div', { class: 'bar-main' },
+      h('div', { class: 'bar-label' }, h('span', { class: 'name' }, p.name), badge ? h('span', { class: 'badge' }, badge) : null,
+        h('span', { class: 'bar-val' }, label)),
+      h('div', { class: 'bar' }, h('i', { style: `width:${Math.max(value, 1)}%` }))));
+  const lines = caps.map((o) => row(d.players[o.id], o.captained_pct, pct(o.captained_pct),
+    mine && mine.id === o.id ? 'Your captain' : null));
+  if (mine && !caps.some((o) => o.id === mine.id)) {
+    lines.push(row(d.players[mine.id], 0, 'No rivals', 'Your captain'));
+  }
+  return h('div', { class: 'card split' }, lines);
+}
+
+function chipsTable(d) {
+  const columns = [col('Rank', 'num'), col('Team'), col('GW', 'num', 'Points this gameweek'), col('Total', 'num'),
+    col('Chips left', null, 'Chips still available before the next deadline'), col('Played', null, 'Chip played this gameweek'),
+    state.teamId ? col('', 'act') : null].filter(Boolean);
+  return table(columns, d.managers.map((m) => h('tr', { class: d.me && m.team_id === d.me.team_id ? 'me' : null },
+    h('td', { class: 'num' }, String(m.rank)),
+    h('td', null, h('div', { class: 'name' }, m.team, d.me && m.team_id === d.me.team_id ? h('span', { class: 'badge' }, 'You') : null),
+      h('div', { class: 'sub' }, m.manager)),
+    h('td', { class: 'num' }, String(m.gw_points)),
+    h('td', { class: 'num strong' }, m.total.toLocaleString()),
+    h('td', null, chipPills(m.chips_left, d.chip_names)),
+    h('td', null, m.active_chip ? h('span', { class: 'chip-pill', title: d.chip_names[m.active_chip] || m.active_chip }, CHIP_SHORT[m.active_chip] || m.active_chip) : h('span', { class: 'blank' }, '–')),
+    state.teamId ? h('td', { class: 'act' }, compareBtn(m.team_id, m.team)) : null)));
+}
+
+function radarNote(d) {
+  return note([
+    `Squads as of the GW${d.gameweek} deadline, compared across ${d.rivals_compared} rivals in ${d.league}.`,
+    d.more_managers ? `Only the top ${d.managers.length} of the league are included.` : '',
+    d.skipped ? `${d.skipped} squad${d.skipped > 1 ? 's' : ''} couldn't be read.` : '',
+  ].filter(Boolean).join(' '));
+}
+
+function radarView(d) {
+  const me = d.me;
+  const leader = d.managers[0];
+  const above = me ? d.managers.filter((m) => m.team_id !== me.team_id && (me.rank == null || m.rank < me.rank)).pop() : null;
+  const topCap = [...d.ownership].sort((a, b) => b.captained_pct - a.captained_pct)[0];
+  const tcLeft = d.managers.filter((m) => (!me || m.team_id !== me.team_id) && (m.chips_left || []).includes('3xc')).length;
+  const out = [tiles([
+    me ? ['Your league rank', me.rank ? '#' + me.rank : '–',
+      me.rank === 1 ? 'Leading the league' : `${(leader.total - me.total).toLocaleString()} pts behind ${leader.team}`] : null,
+    above ? ['Next target', above.team, `${(above.total - me.total).toLocaleString()} pts ahead of you`] : null,
+    topCap && topCap.captained_pct ? ['Most captained', d.players[topCap.id].name, `${pct(topCap.captained_pct)} of rivals`] : null,
+    ['Rivals holding a Triple Captain', String(tcLeft), `of ${d.rivals_compared}`],
+  ])];
+  if (me) {
+    const threats = d.ownership.filter((o) => o.swing < -5).sort((a, b) => a.swing - b.swing).slice(0, 10);
+    const edges = d.ownership.filter((o) => o.swing > 5).sort((a, b) => b.swing - a.swing).slice(0, 10);
+    out.push(
+      section('Threats', 'Players your rivals rely on more than you do. When they score, you drop places.',
+        threats.length ? eoTable(d, threats, true) : notice('Nothing here: you cover everything your rivals own.')),
+      section('Your edge', 'Players you rely on more than your rivals do. When they score, you climb.',
+        edges.length ? eoTable(d, edges, true) : notice('Your squad matches the league template, so there is no edge yet.')));
+  } else {
+    out.push(
+      notice('Enter your team ID in the top bar to see which players threaten you and which ones give you an edge.'),
+      section('Most owned in this league', 'The league template: who your rivals start and captain.',
+        eoTable(d, d.ownership.slice(0, 15), false)));
+  }
+  out.push(
+    section('Captain split', `Who your rivals captained in GW${d.gameweek}.`, captainSplit(d)),
+    section('Chips left', 'Chips each manager can still play before the next deadline.', chipsTable(d)),
+    radarNote(d), legend());
+  return out;
+}
+
+function h2hView(d) {
+  const p = state.p.league;
+  const me = d.me;
+  if (!me) return notice('Enter your team ID in the top bar to compare yourself with a rival.');
+  const others = d.managers.filter((m) => m.team_id !== me.team_id);
+  // Default rival: the manager directly above you (or below, if you lead).
+  let rival = others.find((m) => m.team_id === p.rival)
+    || others.filter((m) => me.rank == null || m.rank < me.rank).pop() || others[0];
+  p.rival = rival.team_id;
+  p.rivalName = rival.team;
+
+  const mine = new Map(me.picks.map((pk) => [pk.id, pk]));
+  const theirs = new Map(rival.picks.map((pk) => [pk.id, pk]));
+  const role = (pk) => !pk ? 'not owned' : pk.c ? (pk.mult === 3 ? 'triple captain' : 'captain')
+    : !pk.xi ? (pk.mult ? 'bench (boosted)' : 'bench') : 'starting';
+  const onlyThem = rival.picks.filter((pk) => !mine.has(pk.id));
+  const onlyMe = me.picks.filter((pk) => !theirs.has(pk.id));
+  const diffRole = me.picks.filter((pk) => theirs.has(pk.id) && theirs.get(pk.id).mult !== pk.mult);
+  const same = me.picks.length - onlyMe.length - diffRole.length;
+  const capName = (m) => { const c = m.picks.find((pk) => pk.c); return c ? d.players[c.id].name : '–'; };
+  const gap = rival.total - me.total;
+
+  const columns = [col('Player'), col('Them'), col('You'), col('Form', 'num', 'Average points per match over the last 30 days'),
+    col('Next fixtures'), col('', 'act')];
+  const group = (label, n) => h('tr', { class: 'group' }, h('th', { colSpan: columns.length, scope: 'colgroup' }, `${label} (${n})`));
+  const row = (pk) => {
+    const pl = d.players[pk.id];
+    return h('tr', null, playerCell(pl), h('td', null, roleTag(role(theirs.get(pk.id)))), h('td', null, roleTag(role(mine.get(pk.id)))),
+      h('td', { class: 'num' }, one(pl.form)), h('td', null, fixtureChips(pl.next_3_fixtures)), h('td', { class: 'act' }, askPlayerBtn(pl)));
+  };
+  const rows = [];
+  if (onlyThem.length) rows.push(group('Only they have', onlyThem.length), ...onlyThem.map(row));
+  if (onlyMe.length) rows.push(group('Only you have', onlyMe.length), ...onlyMe.map(row));
+  if (diffRole.length) rows.push(group('Same player, different role', diffRole.length), ...diffRole.map(row));
+
+  return [
+    h('div', { class: 'controls' }, select('Rival', others.map((m) => [m.team_id, `#${m.rank} ${m.team} (${m.manager})`]),
+      rival.team_id, (v) => { p.rival = +v; load(); })),
+    tiles([
+      ['Points gap', gap > 0 ? `${gap} behind` : gap < 0 ? `${-gap} ahead` : 'Level', `vs ${rival.team}`],
+      ['Their captain', capName(rival), `Yours: ${capName(me)}`],
+      ['Their chips left', chipPills(rival.chips_left, d.chip_names), h('span', null, 'Yours: ', chipPills(me.chips_left, d.chip_names))],
+      ['Shared players', `${same} of ${me.picks.length}`, 'same player, same role'],
+    ]),
+    rows.length ? table(columns, rows) : notice('Your squads are identical, players and roles. Only a transfer or a captain change can split you.'),
+    note(`Shared players in the same role score the same for both of you, so only the players above can change the gap. Squads as of the GW${d.gameweek} deadline.`),
+    legend(),
+  ];
+}
+
+/* ---------- squad planner ---------- */
+// Everything happens in the page: nothing here changes the manager's real FPL team.
+// Money is kept in tenths of a million (FPL's own unit) so sums don't drift.
+
+const CHIPS = [['wildcard', 'Wildcard'], ['freehit', 'Free Hit'], ['bboost', 'Bench Boost'], ['3xc', 'Triple Captain']];
+const chipName = (c) => (CHIPS.find(([k]) => k === c) || [c, c])[1];
+const POS_NAME = { GKP: 'goalkeeper', DEF: 'defender', MID: 'midfielder', FWD: 'forward' };
+const EMPTY_SQUAD = ['GKP', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'GKP', 'DEF', 'MID', 'FWD'];
+const tenths = (v) => Math.round(v * 10);
+const m10 = (t) => (t < 0 ? '−£' : '£') + (Math.abs(t) / 10).toFixed(1) + 'm';
+const fold = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+let plannerPlayers = null;
+function getPlannerPlayers() {
+  if (!plannerPlayers || Date.now() - plannerPlayers.at > 10 * 60e3) {
+    const entry = { at: Date.now(), promise: api('/api/planner/players').then((d) => ({ ...d, byId: new Map(d.players.map((p) => [p.id, p])) })) };
+    entry.promise.catch(() => { if (plannerPlayers === entry) plannerPlayers = null; });
+    plannerPlayers = entry;
+  }
+  return plannerPlayers.promise;
+}
+
+// pl.base is the squad as it stands in FPL; pl.plan is the manager's edited copy.
+const pl = { data: null, base: null, plan: null, sel: null, swapping: false, drag: null, flash: '',
+  sort: 'form', q: '', affordable: true, root: null, teamError: null };
+
+const planKey = () => 'fpl.plan.' + (pl.base.teamId || 'new');
+const savePlan = () => store.set(planKey(), JSON.stringify(pl.plan));
+const teamOf = (p) => pl.data.teams[p.team];
+
+function startPlanner({ players, team }) {
+  pl.data = players;
+  pl.teamError = team && team.error ? team.error : null;
+  if (team && !team.error) {
+    const cap = team.squad.find((s) => s.captain), vice = team.squad.find((s) => s.vice);
+    pl.base = {
+      teamId: state.teamId, fresh: false, team, bank: tenths(team.bank), ft: team.free_transfers,
+      chipsLeft: team.chips_left, ids: new Set(team.squad.map((s) => s.id)),
+      sell: new Map(team.squad.map((s) => [s.id, tenths(s.sell)])),
+      slots: team.squad.map((s) => ({ pos: players.byId.get(s.id).pos, id: s.id })),
+      captain: cap ? cap.id : null, vice: vice ? vice.id : null,
+    };
+  } else {
+    pl.base = { teamId: null, fresh: true, team: null, bank: 1000, ft: 0, chipsLeft: null, ids: new Set(), sell: new Map(),
+      slots: EMPTY_SQUAD.map((pos) => ({ pos, id: null })), captain: null, vice: null };
+  }
+  pl.plan = loadPlan() || freshPlan();
+  Object.assign(pl, { sel: null, swapping: false, drag: null, flash: '', q: '' });
+  pl.root = h('div', { class: 'planner-wrap' });
+  drawPlanner();
+  return pl.root;
+}
+
+function freshPlan() {
+  const b = pl.base;
+  return { gw: pl.data.gameweek, slots: b.slots.map((s) => ({ ...s })), captain: b.captain, vice: b.vice, chip: null, ft: b.ft };
+}
+
+// A saved plan only applies to the same gameweek; after the deadline the real squad has moved on.
+function loadPlan() {
+  try {
+    const saved = JSON.parse(store.get(planKey()) || 'null');
+    if (!saved || saved.gw !== pl.data.gameweek || !Array.isArray(saved.slots) || saved.slots.length !== 15) return null;
+    if (!saved.slots.every((s) => s && POS_NAME[s.pos] && (s.id == null || pl.data.byId.has(s.id)))) return null;
+    if (saved.chip && pl.base.chipsLeft && !pl.base.chipsLeft.includes(saved.chip)) saved.chip = null;
+    return saved;
+  } catch { return null; }
+}
+
+function planStats() {
+  const { plan, base } = pl, P = pl.data.byId;
+  const ids = plan.slots.map((s) => s.id).filter(Boolean);
+  const have = new Set(ids);
+  const outs = [...base.ids].filter((id) => !have.has(id));
+  const ins = ids.filter((id) => !base.ids.has(id));
+  const price = (id) => (base.sell.has(id) ? base.sell.get(id) : tenths(P.get(id).price));
+  const bank = base.bank + outs.reduce((t, id) => t + base.sell.get(id), 0) - ins.reduce((t, id) => t + tenths(P.get(id).price), 0);
+  const value = bank + ids.reduce((t, id) => t + price(id), 0);
+  const free = base.fresh || plan.chip === 'wildcard' || plan.chip === 'freehit';
+  const hits = free ? 0 : Math.max(0, ins.length - plan.ft) * 4;
+  const clubs = {};
+  for (const id of ids) { const t = P.get(id).team; clubs[t] = (clubs[t] || 0) + 1; }
+  const empty = plan.slots.length - ids.length;
+  const xi = new Set(plan.slots.slice(0, 11).map((s) => s.id));
+  const warnings = [];
+  if (empty) warnings.push(`${empty} empty slot${empty > 1 ? 's' : ''} to fill.`);
+  if (bank < 0) warnings.push(`Over budget by ${m10(-bank)}.`);
+  for (const [t, n] of Object.entries(clubs)) if (n > 3) warnings.push(`${n} ${pl.data.teams[t].name} players: the limit is 3 per club.`);
+  if (!plan.captain || !xi.has(plan.captain)) warnings.push('Pick a captain from your starting XI.');
+  else if (!plan.vice || !xi.has(plan.vice)) warnings.push('Pick a vice-captain from your starting XI.');
+  // Pair each sale with a purchase in the same position, so the list reads "A out, B in".
+  const left = [...ins];
+  const pairs = outs.map((o) => {
+    const k = left.findIndex((i) => P.get(i).pos === P.get(o).pos);
+    return [o, k >= 0 ? left.splice(k, 1)[0] : null];
+  });
+  return { outs, ins, pairs, bank, value, hits, free, clubs, empty, warnings };
+}
+
+function formationProblem(slots) {
+  const n = { GKP: 0, DEF: 0, MID: 0, FWD: 0 };
+  slots.slice(0, 11).forEach((s) => n[s.pos]++);
+  if (n.DEF < 3) return 'Your starting XI needs at least 3 defenders.';
+  if (n.MID < 2) return 'Your starting XI needs at least 2 midfielders.';
+  if (n.FWD < 1) return 'Your starting XI needs at least 1 forward.';
+  return null;
+}
+
+function say(msg) { pl.flash = msg; drawPlanner(); }
+function changed() { pl.flash = ''; savePlan(); drawPlanner(); }
+
+function trySwap(a, b) {
+  if (a === b) return;
+  if (a > b) [a, b] = [b, a];
+  const S = pl.plan.slots;
+  pl.swapping = false;
+  if (b < 11) return say('Both players are already in your starting XI.');
+  if (a >= 11 && a === 11) return say('Your bench goalkeeper always sits first on the bench.');
+  if (a < 11 && (S[a].pos === 'GKP') !== (S[b].pos === 'GKP')) return say('A goalkeeper can only swap with the other goalkeeper.');
+  const next = S.slice();
+  [next[a], next[b]] = [next[b], next[a]];
+  if (a < 11) { const why = formationProblem(next); if (why) return say(why); }
+  pl.plan.slots = next;
+  if (a < 11) {  // the armband follows the player who comes into the XI
+    const off = S[a].id, on = S[b].id;
+    if (off && pl.plan.captain === off) pl.plan.captain = on;
+    if (off && pl.plan.vice === off) pl.plan.vice = on;
+  }
+  pl.sel = null;
+  changed();
+}
+
+function setArmband(kind, id) {
+  const plan = pl.plan, other = kind === 'captain' ? 'vice' : 'captain';
+  if (plan[other] === id) plan[other] = plan[kind];
+  plan[kind] = id;
+  changed();
+}
+
+function sellSlot(i) {
+  const s = pl.plan.slots[i];
+  if (pl.plan.captain === s.id) { pl.plan.captain = pl.plan.vice; pl.plan.vice = null; }  // vice steps up, as in FPL
+  if (pl.plan.vice === s.id) pl.plan.vice = null;
+  pl.plan.slots[i] = { pos: s.pos, id: null };
+  pl.q = '';
+  changed();  // the slot stays selected, so the picker opens for it
+}
+
+function buy(id) {
+  const i = pl.sel;
+  if (i == null || pl.plan.slots[i].id) return;
+  pl.plan.slots[i] = { pos: pl.plan.slots[i].pos, id };
+  pl.sel = null;
+  changed();
+}
+
+// Undo a transfer: the sold player goes back where the new one is (or into an empty slot).
+function undoTransfer(outId, inId) {
+  const S = pl.plan.slots, pos = pl.data.byId.get(outId).pos;
+  let i = inId ? S.findIndex((s) => s.id === inId) : -1;
+  if (i < 0) i = S.findIndex((s) => !s.id && s.pos === pos);
+  if (i < 0) return say('Free up a slot in that position first.');
+  S[i] = { pos, id: outId };
+  pl.sel = null;
+  changed();
+}
+
+function cardClick(i) {
+  if (pl.swapping && pl.sel != null && pl.sel !== i) return trySwap(pl.sel, i);
+  pl.swapping = false;
+  pl.flash = '';
+  pl.sel = pl.sel === i ? null : i;
+  pl.q = '';
+  drawPlanner();
+  // On a phone the side panel sits under the pitch, so bring it into view.
+  if (pl.sel != null && pl.root.offsetWidth < 860) { const side = $('.pside', pl.root); if (side) side.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+
+function emptyKit() {
+  const el = h('span', { class: 'kit empty-kit', 'aria-hidden': 'true' });
+  el.innerHTML = `<svg viewBox="0 0 100 100"><path d="${SHIRT.torso}M22 4L0 24L13 42L22 34M78 4L100 24L87 42L78 34" fill="rgba(255,255,255,.12)"
+    stroke="rgba(255,255,255,.8)" stroke-width="3" stroke-dasharray="7 5" stroke-linejoin="round"/>
+    <path d="M50 40v26M37 53h26" stroke="#fff" stroke-width="6" stroke-linecap="round"/></svg>`;
+  return el;
+}
+
+function planCard(i) {
+  const s = pl.plan.slots[i], p = s.id ? pl.data.byId.get(s.id) : null;
+  const card = h('button', {
+    class: 'pcard' + (p ? '' : ' empty') + (pl.sel === i ? ' sel' : ''), type: 'button', draggable: !!p,
+    title: p ? `${p.full_name}: tap for options, or drag onto another player to swap` : `Empty ${POS_NAME[s.pos]} slot: tap to pick a player`,
+    onclick: () => cardClick(i),
+    ondragstart: (e) => { pl.drag = i; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); },
+    ondragend: () => { pl.drag = null; },
+    ondragover: (e) => { if (pl.drag != null && pl.drag !== i) { e.preventDefault(); card.classList.add('drop'); } },
+    ondragleave: () => card.classList.remove('drop'),
+    ondrop: (e) => { e.preventDefault(); const from = pl.drag; pl.drag = null; if (from != null) trySwap(from, i); },
+  });
+  if (!p) {
+    card.append(emptyKit(), h('span', { class: 'pc-name' }, 'Add ' + s.pos));
+    return card;
+  }
+  const team = teamOf(p), plan = pl.plan;
+  const band = plan.captain === p.id ? (plan.chip === '3xc' ? 'TC' : 'C') : plan.vice === p.id ? 'V' : null;
+  const fxs = team.fixtures.filter((f) => f.gw === pl.data.gameweek);
+  card.append(
+    h('span', { class: 'pc-shirt' }, kit(team.name),
+      band ? h('span', { class: 'pc-band' + (band === 'TC' ? ' tc' : ''), title: band === 'V' ? 'Vice-captain' : 'Captain' }, band) : null,
+      p.status !== 'available' ? h('span', { class: 'pc-flag' + (p.status === 'doubtful' ? '' : ' out'), title: p.news || cap(p.status) }, '!') : null),
+    h('span', { class: 'pc-name' }, p.name),
+    h('span', { class: 'pc-price' }, money(p.price)),
+    h('span', { class: 'pc-fx' }, fxs.length
+      ? fxs.map((f) => h('span', { class: 'fdr' + f.fdr, title: `GW${f.gw}: ${f.opponent} (${f.home ? 'home' : 'away'}), difficulty ${f.fdr}` }, `${f.opponent} (${f.home ? 'H' : 'A'})`))
+      : h('span', { class: 'pc-blank' }, 'Blank')));
+  return card;
+}
+
+function plannerBar(s) {
+  const { plan, base } = pl;
+  return h('div', { class: 'controls planner-bar' },
+    h('div', { class: 'control' }, h('span', null, 'Chip'), h('div', { class: 'seg', role: 'group', 'aria-label': 'Chip' },
+      CHIPS.map(([c, name]) => {
+        const ok = !base.chipsLeft || base.chipsLeft.includes(c);
+        return h('button', {
+          class: 'seg-btn', type: 'button', 'aria-pressed': String(plan.chip === c), disabled: !ok,
+          title: ok ? (plan.chip === c ? 'Tap again to cancel' : '') : 'Already used in this half of the season',
+          onclick: () => { plan.chip = plan.chip === c ? null : c; changed(); },
+        }, name);
+      }))),
+    base.fresh ? null : select('Free transfers', [0, 1, 2, 3, 4, 5].map((n) => [n, String(n)]), plan.ft,
+      (v) => { plan.ft = +v; changed(); }),
+    h('div', { class: 'control' }, h('span', null, ' '),
+      h('button', { class: 'btn', type: 'button', onclick: () => { pl.plan = freshPlan(); pl.sel = null; changed(); } },
+        base.fresh ? 'Clear squad' : 'Reset to my team')));
+}
+
+function summaryPanel(s) {
+  const P = pl.data.byId, { base, plan } = pl;
+  const notes = {
+    wildcard: 'Wildcard: unlimited free transfers, and they stay after the gameweek.',
+    freehit: 'Free Hit: unlimited free transfers for one gameweek, then your squad goes back to how it was.',
+    bboost: 'Bench Boost: your bench players score too.',
+    '3xc': 'Triple Captain: your captain scores three times their points.',
+  };
+  return [
+    h('h3', null, 'Your plan'),
+    s.warnings.length ? h('ul', { class: 'warn' }, s.warnings.map((w) => h('li', null, w))) : h('p', { class: 'ok' }, 'Squad is valid and ready.'),
+    base.fresh ? null : s.pairs.length
+      ? h('div', { class: 'tlist' }, s.pairs.map(([o, n]) => h('div', { class: 'trow' },
+          h('span', { class: 't-out', title: P.get(o).full_name }, P.get(o).name, ' ', h('small', null, m10(base.sell.get(o)))),
+          h('span', { 'aria-hidden': 'true' }, '→'),
+          n ? h('span', { class: 't-in', title: P.get(n).full_name }, P.get(n).name, ' ', h('small', null, money(P.get(n).price))) : h('span', { class: 'blank' }, 'Empty slot'),
+          h('button', { class: 'btn small', type: 'button', onclick: () => undoTransfer(o, n) }, 'Undo'))))
+      : h('p', { class: 'sub' }, 'No transfers yet. Tap a player and choose Transfer out.'),
+    plan.chip ? h('p', { class: 'sub' }, notes[plan.chip]) : null,
+    h('p', { class: 'sub' }, 'Drag a player onto another to swap starter and bench, or tap a player to captain, substitute or sell them. Your plan is saved in this browser until the deadline.'),
+  ];
+}
+
+function playerPanel(i) {
+  const p = pl.data.byId.get(pl.plan.slots[i].id), team = teamOf(p), { plan, base } = pl;
+  const starting = i < 11;
+  return [
+    h('div', { class: 'pp-head' }, kit(team.name, 'lg'), h('div', null,
+      h('div', { class: 'pod-name' }, p.name),
+      h('div', { class: 'sub' }, team.name, ' · ', h('span', { class: 'pos ' + p.pos }, p.pos), starting ? ' · Starting' : ' · Bench'))),
+    statusFlag({ status: p.status, chance_of_playing_next_gw: p.chance, news: p.news }),
+    p.news ? h('p', { class: 'sub' }, p.news) : null,
+    h('div', { class: 'pod-stats' },
+      stat('Price', money(p.price), true),
+      base.sell.has(p.id) ? stat('Sells for', m10(base.sell.get(p.id))) : null,
+      stat('Form', one(p.form)), stat('Points', String(p.total)), stat('Owned', one(p.owned) + '%')),
+    h('div', { class: 'fxs' }, team.fixtures.length ? team.fixtures.map(chip) : h('span', { class: 'blank' }, 'No fixtures')),
+    pl.swapping ? h('p', { class: 'flash', style: 'margin:12px 0 0' }, `Now tap the player to swap with ${p.name}.`) : null,
+    h('div', { class: 'pp-actions' },
+      starting ? h('button', { class: 'btn small', type: 'button', disabled: plan.captain === p.id, onclick: () => setArmband('captain', p.id) }, 'Make captain') : null,
+      starting ? h('button', { class: 'btn small', type: 'button', disabled: plan.vice === p.id, onclick: () => setArmband('vice', p.id) }, 'Make vice') : null,
+      h('button', {
+        class: 'btn small', type: 'button', 'aria-pressed': String(pl.swapping),
+        onclick: () => { pl.swapping = !pl.swapping; drawPlanner(); if (pl.swapping && pl.root.offsetWidth < 860) $('.pitch', pl.root).scrollIntoView({ behavior: 'smooth', block: 'start' }); },
+      }, pl.swapping ? 'Cancel swap' : starting ? 'Substitute' : 'Bring on'),
+      h('button', { class: 'btn small', type: 'button', onclick: () => sellSlot(i) }, base.ids.has(p.id) ? 'Transfer out' : 'Remove'),
+      askPlayerBtn({ ...p, team: team.name }),
+      h('button', { class: 'btn small', type: 'button', onclick: () => { pl.sel = null; pl.swapping = false; drawPlanner(); } }, 'Close')),
+  ];
+}
+
+function pickerPanel(i, s) {
+  const pos = pl.plan.slots[i].pos, P = pl.data, { base } = pl;
+  const taken = new Set(pl.plan.slots.map((x) => x.id).filter(Boolean));
+  const budget = s.bank;  // the slot is already empty, so the bank includes the sale
+  const putBack = s.outs.filter((o) => P.byId.get(o).pos === pos);
+  const list = h('div', { class: 'picks', role: 'list' });
+
+  function drawList() {
+    const q = fold(pl.q.trim());
+    const sorters = { form: (a, b) => b.form - a.form, total: (a, b) => b.total - a.total, price: (a, b) => b.price - a.price,
+      cheap: (a, b) => a.price - b.price, owned: (a, b) => b.owned - a.owned };
+    const rows = P.players.filter((p) => p.pos === pos && !taken.has(p.id) && p.status !== 'unavailable'
+        && (!pl.affordable || tenths(p.price) <= budget)
+        && (!q || fold(p.name).includes(q) || fold(p.full_name).includes(q) || fold(teamOf(p).name).includes(q)))
+      .sort(sorters[pl.sort]).slice(0, 60);
+    list.replaceChildren(...(rows.length ? rows.map((p) => {
+      const team = teamOf(p), full = (s.clubs[p.team] || 0) >= 3;
+      return h('div', { class: 'pick-row', role: 'listitem' }, kit(team.name),
+        h('div', { class: 'pr-main' },
+          h('div', { class: 'name', title: p.full_name }, p.name),
+          h('div', { class: 'sub' }, `${team.short} · ${money(p.price)} · form ${one(p.form)} · ${p.total} pts`),
+          statusFlag({ status: p.status, chance_of_playing_next_gw: p.chance, news: p.news }),
+          h('div', { class: 'fxs' }, team.fixtures.map(chip))),
+        h('button', {
+          class: 'btn small primary', type: 'button', disabled: full,
+          title: full ? `You already have 3 ${team.name} players` : `Add ${p.name} for ${money(p.price)}`,
+          onclick: () => buy(p.id),
+        }, 'Add'));
+    }) : [h('p', { class: 'sub', style: 'padding:12px 16px' }, pl.affordable ? 'Nobody matches within your budget. Untick "Only what I can afford" or sell someone else first.' : 'Nobody matches.')]));
+  }
+  drawList();
+
+  return [
+    h('h3', null, 'Pick a ' + POS_NAME[pos]),
+    h('p', { class: 'sub' }, budget >= 0 ? `You can spend up to ${m10(budget)}.` : `You're already ${m10(-budget)} over budget.`),
+    putBack.length ? h('div', { class: 'putback' }, putBack.map((o) => h('button', {
+      class: 'btn small', type: 'button', onclick: () => undoTransfer(o, null),
+    }, `Keep ${P.byId.get(o).name}`))) : null,
+    h('div', { class: 'pick-tools' },
+      field('Search', h('input', {
+        class: 'field', type: 'search', value: pl.q, placeholder: 'Name or club',
+        oninput: (e) => { pl.q = e.target.value; drawList(); },
+      })),
+      select('Sort by', [['form', 'Form'], ['total', 'Total points'], ['owned', 'Most owned'], ['price', 'Price, high to low'], ['cheap', 'Price, low to high']],
+        pl.sort, (v) => { pl.sort = v; drawList(); }),
+      checkbox('Only what I can afford', pl.affordable, (v) => { pl.affordable = v; drawList(); }),
+      h('button', { class: 'btn small', type: 'button', onclick: () => { pl.sel = null; drawPlanner(); } }, 'Cancel')),
+    list,
+  ];
+}
+
+function drawPlanner() {
+  const s = planStats(), { plan, base } = pl;
+  const xiRows = ['GKP', 'DEF', 'MID', 'FWD'].map((pos) => h('div', { class: 'pitch-row' },
+    plan.slots.slice(0, 11).map((slot, i) => [slot, i]).filter(([slot]) => slot.pos === pos).map(([, i]) => planCard(i))));
+  const sel = pl.sel != null ? plan.slots[pl.sel] : null;
+  pl.root.replaceChildren(...[
+    pl.teamError ? notice(`Couldn't load your squad: ${pl.teamError} This starts from an empty £100m squad instead.`) : null,
+    tiles([
+      ['In the bank', m10(s.bank), s.bank < 0 ? 'Over budget' : `Squad value ${m10(s.value)}`],
+      base.fresh ? ['Players picked', `${15 - s.empty} of 15`, '£100m budget']
+        : ['Transfers', String(s.ins.length), s.free ? `Free with ${plan.chip ? chipName(plan.chip) : 'the builder'}` : `${plan.ft} free`],
+      base.fresh ? null : ['Points hit', s.hits ? `−${s.hits}` : '0', s.hits ? `${s.ins.length - plan.ft} extra × 4 pts` : 'No hit taken'],
+      ['Chip', plan.chip ? chipName(plan.chip) : 'None', base.team ? `Planning GW${pl.data.gameweek} from your GW${base.team.squad_from_gw} squad` : `Planning GW${pl.data.gameweek}`],
+    ]),
+    plannerBar(s),
+    pl.flash ? h('div', { class: 'flash', role: 'status' }, pl.flash) : null,
+    h('div', { class: 'planner' },
+      h('div', null,
+        h('div', { class: 'pitch' + (pl.swapping ? ' swapping' : '') }, xiRows),
+        h('div', { class: 'bench' + (pl.swapping ? ' swapping' : '') },
+          h('div', { class: 'bench-label' }, plan.chip === 'bboost' ? 'Bench · boosted, all four score' : 'Bench'),
+          h('div', { class: 'pitch-row' }, [11, 12, 13, 14].map(planCard)))),
+      h('div', { class: 'card pside', 'aria-live': 'polite' },
+        !sel ? summaryPanel(s) : sel.id ? playerPanel(pl.sel) : pickerPanel(pl.sel, s))),
+    note(base.fresh ? 'Builder mode: prices are current prices.'
+      : 'Selling prices follow the FPL rule (you keep half of any rise) and are worked out from your transfer history. Free transfers are an estimate, so check the number in the FPL app. Nothing here changes your real team.'),
+    legend(),
+  ].filter(Boolean));
+}
+
+function planText() {
+  const s = planStats(), P = pl.data.byId, { plan, base } = pl;
+  const nm = (id) => P.get(id).name + (plan.captain === id ? (plan.chip === '3xc' ? ' (TC)' : ' (C)') : plan.vice === id ? ' (VC)' : '');
+  const names = (from, to) => plan.slots.slice(from, to).filter((x) => x.id).map((x) => nm(x.id)).join(', ') || 'none';
+  const lines = [
+    `Here is my plan for GW${pl.data.gameweek}${plan.chip ? `, playing my ${chipName(plan.chip)}` : ''}.`,
+    `Starting XI: ${names(0, 11)}.`,
+    `Bench: ${names(11, 15)}.`,
+  ];
+  if (!base.fresh) {
+    lines.push(s.pairs.length ? `Transfers: ${s.pairs.map(([o, n]) => `${P.get(o).name} out, ${n ? P.get(n).name + ' in' : 'slot left empty'}`).join('; ')}.` : 'No transfers.');
+  }
+  lines.push(`Money left: ${m10(s.bank)}.` + (s.hits ? ` Points hit: −${s.hits}.` : ''));
+  if (s.warnings.length) lines.push('Problems: ' + s.warnings.join(' '));
+  lines.push('Is this a good plan? What would you change?');
+  return lines.join('\n');
 }
 
 /* ---------- explore views ---------- */
 // Each view returns: title, blurb, controls, fetch (or `need` when input is missing), render, ask.
 
 const TABS = [['captain', 'Captain'], ['transfers', 'Transfers'], ['fixtures', 'Fixtures'],
-  ['differentials', 'Differentials'], ['injuries', 'Injuries'], ['team', 'My team'], ['league', 'Mini-league']];
+  ['differentials', 'Differentials'], ['injuries', 'Injuries'], ['team', 'My team'], ['planner', 'Planner'], ['league', 'Mini-league']];
 
 const views = {
   captain() {
@@ -822,21 +1558,57 @@ const views = {
     };
   },
 
+  planner() {
+    const gw = nextGw();
+    return {
+      title: gw ? `Squad planner for GW${gw}` : 'Squad planner',
+      blurb: state.teamId
+        ? 'Your squad on a pitch. Drag players around, try transfers and chips, and see what it does to your budget before the deadline.'
+        : 'Build a squad from scratch with £100m. Enter your team ID in the top bar to plan from your real squad instead.',
+      fetch: () => Promise.all([
+        getPlannerPlayers(),
+        state.teamId ? api('/api/planner/team/' + state.teamId).catch((e) => ({ error: e.message })) : null,
+      ]).then(([players, team]) => ({ players, team })),
+      render: startPlanner,
+      get ask() { return pl.plan && pl.root && pl.root.isConnected ? planText() : 'Help me plan my squad for the next gameweek.'; },
+    };
+  },
+
   league() {
     const p = state.p.league;
     const id = parseInt(p.id, 10);
+    const view = p.view === 'h2h' && !state.teamId ? 'radar' : p.view;
+    const BLURBS = {
+      standings: 'Standings for a classic league.',
+      radar: 'What your rivals own, captain and still have in hand, and where that leaves you.',
+      h2h: 'You against one rival: only the players you don’t share can change the gap.',
+    };
+    const ASKS = {
+      standings: `Summarise mini-league ${id}: who is leading, and who had the best gameweek?`,
+      radar: state.teamId
+        ? `Use the rival radar for my mini-league ${id}. Who are the biggest threats I don't cover, and what one move would help me climb?`
+        : `Use the rival radar for mini-league ${id}. What is the template, and where are the differentials?`,
+      h2h: p.rival ? `How can I catch ${p.rivalName || 'my rival'} in my mini-league? Compare my team with theirs (rival team ID ${p.rival}) and tell me where I can gain points.` : null,
+    };
     return {
       title: 'Mini-league',
-      blurb: 'Standings for a classic league.',
-      controls: [field('League ID', h('input', {
-        class: 'field', inputMode: 'numeric', value: p.id, placeholder: 'e.g. 314',
-        title: "The number in the league's URL: fantasy.premierleague.com/leagues/314/standings/c",
-        oninput: debounce((e) => { p.id = e.target.value.replace(/\D/g, ''); store.set('fpl.leagueId', p.id); load(); }, 500),
-      }))],
-      need: id ? null : "Enter a league ID to see its standings. It is the number in the league's URL, for example fantasy.premierleague.com/leagues/314/standings/c.",
-      fetch: () => api('/api/league/' + id),
-      render: leagueView,
-      ask: id ? `Summarise mini-league ${id}: who is leading, and who had the best gameweek?` : null,
+      blurb: BLURBS[view],
+      controls: [
+        field('League ID', h('input', {
+          class: 'field', inputMode: 'numeric', value: p.id, placeholder: 'e.g. 314',
+          title: "The number in the league's URL: fantasy.premierleague.com/leagues/314/standings/c",
+          oninput: debounce((e) => { p.id = e.target.value.replace(/\D/g, ''); p.rival = null; store.set('fpl.leagueId', p.id); load(); }, 500),
+        })),
+        segmented('View', [
+          ['radar', 'Rival radar'],
+          ['h2h', 'Head to head', state.teamId ? '' : 'Enter your team ID in the top bar first'],
+          ['standings', 'Standings'],
+        ], view, (v) => { p.view = v; store.set('fpl.leagueView', v); showTab('league'); }),
+      ],
+      need: id ? null : "Enter a league ID to see your rivals. It is the number in the league's URL, for example fantasy.premierleague.com/leagues/314/standings/c.",
+      fetch: () => view === 'standings' ? api('/api/league/' + id) : getRadar(id),
+      render: view === 'standings' ? leagueView : view === 'h2h' ? h2hView : radarView,
+      ask: id ? ASKS[view] : null,
     };
   },
 };
@@ -913,7 +1685,7 @@ const TOOL_LABELS = {
   get_player: 'player stats', compare_players: 'player comparison', fixture_difficulty: 'fixture difficulty',
   get_my_team: 'your squad', suggest_captain: 'captain ranking', suggest_transfers: 'transfer targets',
   injury_news: 'injury news', find_differentials: 'differentials', gameweek_info: 'gameweek info',
-  mini_league: 'mini-league standings',
+  mini_league: 'mini-league standings', mini_league_rivals: 'rival radar', rival_compare: 'head to head',
 };
 const STARTERS = [
   'Who should I captain this gameweek?',
@@ -1061,7 +1833,7 @@ async function send(text) {
     const r = await api('/api/chat', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: text, team_id: state.teamId,
+        message: text, team_id: state.teamId, league_id: parseInt(state.p.league.id, 10) || null,
         history: chatHistory.slice(-HISTORY_TURNS), password: state.password || null,
       }),
     });

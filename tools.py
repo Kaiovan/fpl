@@ -93,6 +93,29 @@ TOOLS = [
             "league_id": {"type": "integer"},
         }, "required": ["league_id"]},
     },
+    {
+        "name": "mini_league_rivals",
+        "description": "Rival radar for a classic mini-league (top 50 managers): how rivals own and "
+                       "captain each player (effective ownership), the captain split, which chips "
+                       "rivals have left and, with team_id, the players that threaten that manager "
+                       "and the ones that give them an edge. Use for 'how do I climb my league', "
+                       "'who should I cover', 'what are my rivals doing'.",
+        "input_schema": {"type": "object", "properties": {
+            "league_id": {"type": "integer"},
+            "team_id": {"type": "integer", "description": "The manager's own team ID, if known"},
+        }, "required": ["league_id"]},
+    },
+    {
+        "name": "rival_compare",
+        "description": "Head to head between two FPL teams: points gap, captains, chips left, and "
+                       "the players only one of them owns or uses differently. Shared players score "
+                       "the same for both, so only these differences change the gap. Use for "
+                       "'how do I catch X' or 'compare me with my rival'.",
+        "input_schema": {"type": "object", "properties": {
+            "team_id": {"type": "integer", "description": "The manager's own team ID"},
+            "rival_team_id": {"type": "integer"},
+        }, "required": ["team_id", "rival_team_id"]},
+    },
 ]
 
 _FUNCS = {t["name"]: getattr(fpl, t["name"]) for t in TOOLS}

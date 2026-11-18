@@ -45,8 +45,25 @@ python server.py
 Opens http://127.0.0.1:8000 with two sides on one page:
 
 - **Explore**: captain picks, transfer targets, fixture difficulty, differentials, injuries,
-  your squad and mini-league standings. These read the FPL API directly, so they are free
+  your squad and your mini-league. These read the FPL API directly, so they are free
   and work without an API key.
+- **Planner**: your squad on a pitch for the next gameweek. Drag players between the XI and
+  the bench (or tap a player, then Substitute), set captain and vice, sell players and pick
+  replacements, and try a chip. It tracks the bank, transfers, points hits, the 3-per-club
+  limit and formation rules. Selling prices follow FPL's rule (you keep half of any rise)
+  and come from the manager's transfer history; free transfers are estimated and can be
+  changed. Without a team ID it is a £100m squad builder. Plans are saved in the browser
+  until the deadline and never touch the real FPL team.
+- **Mini-league** has three views:
+  - *Rival radar*: which players your rivals own and captain that you don't (threats),
+    which ones only you lean on (your edge), the league's captain split, and the chips
+    every manager has left.
+  - *Head to head*: you against one rival, listing only the players you don't share,
+    since those are the only ones that can change the gap.
+  - *Standings*: the table, with a Compare button on each row.
+
+  The radar reads the top 50 managers of the league (about 100 FPL API calls on a cold
+  server, then cached for 5 minutes).
 - **Ask**: chat with the bot. Needs one of the keys above: free on Gemini's free tier, or
   a small cost per question on Claude.
 
@@ -67,6 +84,7 @@ Try:
 - `Any Arsenal injuries?`
 - `Differentials under 3% owned?`
 - `When's the deadline? Any double gameweeks?`
+- `My team ID is 1234567 and my league is 314. How do I catch the leader?`
 
 Your team ID is the number in the URL on your FPL **Points** page
 (`fantasy.premierleague.com/entry/1234567/event/12`).
@@ -84,7 +102,8 @@ Your team ID is the number in the URL on your FPL **Points** page
 ## Tools
 
 `get_player`, `compare_players`, `fixture_difficulty`, `get_my_team`, `suggest_captain`,
-`suggest_transfers`, `injury_news`, `find_differentials`, `gameweek_info`, `mini_league`
+`suggest_transfers`, `injury_news`, `find_differentials`, `gameweek_info`, `mini_league`,
+`mini_league_rivals`, `rival_compare`
 
 ## Adding a tool
 

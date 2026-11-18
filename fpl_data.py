@@ -6,6 +6,7 @@ All prices are returned in £m (FPL stores them in tenths, e.g. 105 -> 10.5).
 
 import time
 import unicodedata
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 import requests
@@ -328,6 +329,330 @@ def mini_league(league_id: int) -> dict:
                            "manager": r["player_name"], "total": r["total"],
                            "gw_points": r["event_total"], "team_id": r["entry"]}
                           for r in rows]}
+
+
+# ---------- mini-league rivals ----------
+
+CHIP_NAMES = {"wildcard": "Wildcard", "freehit": "Free Hit", "bboost": "Bench Boost",
+              "3xc": "Triple Captain", "manager": "Assistant Manager"}
+LEAGUE_MANAGERS = 50  # one page of standings; each manager costs two FPL API calls
+
+
+def _chips_left(used: list) -> Optional[list]:
+    """Chips still available for the next deadline. FPL splits the season into windows
+    (e.g. GW1-19 and GW20-38) and lists them in bootstrap-static["chips"]."""
+    windows = _bootstrap().get("chips")
+    if not windows:
+        return None
+    nxt = _next_gw()
+    left = []
+    for c in windows:
+        if not c["start_event"] <= nxt <= c["stop_event"]:
+            continue
+        n_used = sum(1 for u in used if u["name"] == c["name"]
+                     and c["start_event"] <= u["event"] <= c["stop_event"])
+        if n_used < c.get("number", 1):
+            left.append(c["name"])
+    return left
+
+
+def _manager_gw(team_id: int, gw: int) -> dict:
+    """One manager's picks for a gameweek, plus the chips they have left."""
+    picks = _get(f"entry/{team_id}/event/{gw}/picks/", ttl=300)
+    hist = _get(f"entry/{team_id}/history/", ttl=600)
+    eh = picks.get("entry_history", {})
+    return {
+        "picks": [{"id": pk["element"], "mult": pk["multiplier"], "c": pk["is_captain"],
+                   "vc": pk["is_vice_captain"], "xi": pk["position"] <= 11}
+                  for pk in picks["picks"]],
+        "active_chip": picks.get("active_chip"),
+        "chips_left": _chips_left(hist.get("chips", [])),
+        "gw_points": eh.get("points"),
+        "total": eh.get("total_points"),
+        "bench_points": eh.get("points_on_bench"),
+        "hits": eh.get("event_transfers_cost"),
+    }
+
+
+def _fetch_managers(team_ids: list, gw: int) -> dict:
+    """{team_id: _manager_gw(...) or None}, fetched in parallel. A manager whose data
+    can't be read (for example they joined after the deadline) maps to None."""
+    _bootstrap()  # warm the shared cache before the threads start
+
+    def one(tid):
+        try:
+            return tid, _manager_gw(tid, gw)
+        except (requests.RequestException, KeyError, ValueError):
+            return tid, None
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        return dict(pool.map(one, team_ids))
+
+
+def _role(pk: Optional[dict]) -> str:
+    if not pk:
+        return "not owned"
+    if pk["c"]:
+        return "triple captain" if pk["mult"] == 3 else "captain"
+    if not pk["xi"]:
+        return "bench (boosted)" if pk["mult"] else "bench"
+    return "starting"
+
+
+def _entry_name(team_id: int) -> dict:
+    e = _get(f"entry/{team_id}/", ttl=300)
+    return {"team": e.get("name"),
+            "manager": f"{e.get('player_first_name', '')} {e.get('player_last_name', '')}".strip(),
+            "total": e.get("summary_overall_points")}
+
+
+def league_radar(league_id: int, team_id: Optional[int] = None) -> dict:
+    """Everything the rival radar needs: every manager's picks and chips, plus how the
+    league owns each player compared with you. Used by the web page."""
+    gw = _current_gw()
+    data = _get(f"leagues-classic/{league_id}/standings/", ttl=300)
+    rows = data["standings"]["results"][:LEAGUE_MANAGERS]
+    ids = [r["entry"] for r in rows]
+    outside = bool(team_id) and team_id not in ids  # you, but not in the rows we have
+    fetched = _fetch_managers(ids + ([team_id] if outside else []), gw)
+
+    managers = []
+    for r in rows:
+        m = fetched.get(r["entry"])
+        if m:
+            managers.append({**m, "team_id": r["entry"], "team": r["entry_name"],
+                             "manager": r["player_name"], "rank": r["rank"],
+                             "total": r["total"], "gw_points": r["event_total"]})
+    me = next((m for m in managers if m["team_id"] == team_id), None)
+    if outside and fetched.get(team_id):
+        me = {**fetched[team_id], **_entry_name(team_id), "team_id": team_id, "rank": None}
+    rivals = [m for m in managers if m["team_id"] != team_id]
+    if not rivals:
+        return {"error": f"No squads to compare in this league for GW{gw} yet."}
+
+    n = len(rivals)
+    stats: dict = {}
+    for m in rivals:
+        for pk in m["picks"]:
+            s = stats.setdefault(pk["id"], [0, 0, 0, 0])  # owned, started, captained, multipliers
+            s[0] += 1
+            s[1] += pk["mult"] > 0
+            s[2] += pk["c"]
+            s[3] += pk["mult"]
+    mine = {pk["id"]: pk for pk in me["picks"]} if me else {}
+
+    ownership = []
+    for pid in set(stats) | set(mine):
+        owned, started, captained, mults = stats.get(pid, [0, 0, 0, 0])
+        eo = 100 * mults / n
+        my_mult = mine[pid]["mult"] if pid in mine else 0
+        ownership.append({
+            "id": pid,
+            "owned_pct": round(100 * owned / n, 1),
+            "started_pct": round(100 * started / n, 1),
+            "captained_pct": round(100 * captained / n, 1),
+            "rival_eo": round(eo, 1),          # effective ownership: captains count double
+            "my_role": _role(mine.get(pid)) if me else None,
+            "swing": round(100 * my_mult - eo, 1) if me else None,  # + your edge, - their edge
+        })
+    ownership.sort(key=lambda o: -o["rival_eo"])
+
+    players = _players()
+    return {
+        "league": data["league"]["name"],
+        "league_id": league_id,
+        "gameweek": gw,
+        "rivals_compared": n,
+        "more_managers": data["standings"]["has_next"] or len(data["standings"]["results"]) > len(rows),
+        "skipped": sum(1 for r in rows if not fetched.get(r["entry"])),
+        "me": me,
+        "me_in_top": bool(me) and not outside,
+        "managers": managers,
+        "ownership": ownership,
+        "players": {pid: _summary(players[pid], 3) for pid in {o["id"] for o in ownership}},
+        "chip_names": CHIP_NAMES,
+    }
+
+
+def mini_league_rivals(league_id: int, team_id: Optional[int] = None) -> dict:
+    """Compact rival radar for the chat model: threats, your edges, captain split, chips."""
+    d = league_radar(league_id, team_id)
+    if "error" in d:
+        return d
+    P = d["players"]
+
+    def brief(o):
+        p = P[o["id"]]
+        out = {"name": p["full_name"], "team": p["team"], "position": p["position"],
+               "rival_effective_ownership_pct": o["rival_eo"], "rivals_captaining_pct": o["captained_pct"],
+               "form": p["form"], "next_3_fixtures": p["next_3_fixtures"]}
+        if o["my_role"] is not None:
+            out["your_role"] = o["my_role"]
+        return out
+
+    own = d["ownership"]
+    chip_counts = {}
+    for m in d["managers"]:
+        for c in m["chips_left"] or []:
+            chip_counts[CHIP_NAMES.get(c, c)] = chip_counts.get(CHIP_NAMES.get(c, c), 0) + 1
+    out = {
+        "league": d["league"], "gameweek_of_squads": d["gameweek"], "rivals_compared": d["rivals_compared"],
+        "note": "Effective ownership counts a captain twice (three times for a triple captain) and "
+                "a benched player as zero. Over 100% means rivals captain him heavily.",
+        "captain_split": [{"name": P[o["id"]]["name"], "pct_of_rivals": o["captained_pct"]}
+                          for o in sorted(own, key=lambda o: -o["captained_pct"]) if o["captained_pct"]][:6],
+        "managers_with_chip_left": chip_counts,
+        "standings_top": [{"rank": m["rank"], "team": m["team"], "team_id": m["team_id"],
+                           "total": m["total"], "chips_left": [CHIP_NAMES.get(c, c) for c in m["chips_left"] or []]}
+                          for m in d["managers"][:10]],
+    }
+    me = d["me"]
+    if me:
+        above = [m for m in d["managers"] if m["rank"] and (me["rank"] is None or m["rank"] < me["rank"])]
+        out["you"] = {"rank": me["rank"], "total": me["total"],
+                      "gap_to_leader": d["managers"][0]["total"] - me["total"],
+                      "next_above": ({"team": above[-1]["team"], "team_id": above[-1]["team_id"],
+                                      "points_ahead": above[-1]["total"] - me["total"]} if above else None)}
+        out["threats_you_dont_cover"] = [brief(o) for o in sorted(own, key=lambda o: o["swing"]) if o["swing"] < -5][:8]
+        out["your_edges"] = [brief(o) for o in sorted(own, key=lambda o: -o["swing"]) if o["swing"] > 5][:8]
+    else:
+        out["most_owned"] = [brief(o) for o in own[:10]]
+    return out
+
+
+def rival_compare(team_id: int, rival_team_id: int) -> dict:
+    """Head to head: where two squads differ. Shared players score the same for both,
+    so only these differences can change the points gap."""
+    gw = _current_gw()
+    got = _fetch_managers([team_id, rival_team_id], gw)
+    for tid in (team_id, rival_team_id):
+        if not got.get(tid):
+            return {"error": f"Couldn't load team {tid} for GW{gw}. Check the team ID."}
+    you, them = got[team_id], got[rival_team_id]
+    yn, tn = _entry_name(team_id), _entry_name(rival_team_id)
+    a = {pk["id"]: pk for pk in you["picks"]}
+    b = {pk["id"]: pk for pk in them["picks"]}
+    players = _players()
+
+    def item(pid):
+        p = _summary(players[pid], 3)
+        return {"name": p["full_name"], "team": p["team"], "position": p["position"], "form": p["form"],
+                "status": p["status"], "next_3_fixtures": p["next_3_fixtures"],
+                "your_role": _role(a.get(pid)), "their_role": _role(b.get(pid))}
+
+    def summary(m, names):
+        cap = next((pk["id"] for pk in m["picks"] if pk["c"]), None)
+        return {**names, "captain": players[cap]["web_name"] if cap else None,
+                "active_chip": m["active_chip"],
+                "chips_left": [CHIP_NAMES.get(c, c) for c in m["chips_left"] or []]}
+
+    return {
+        "gameweek_of_squads": gw,
+        "you": summary(you, yn), "rival": summary(them, tn),
+        "rival_points_ahead": (tn["total"] or 0) - (yn["total"] or 0),
+        "only_rival_has": [item(p) for p in b if p not in a],
+        "only_you_have": [item(p) for p in a if p not in b],
+        "shared_different_role": [item(p) for p in a if p in b and a[p]["mult"] != b[p]["mult"]],
+        "shared_same_role_count": sum(1 for p in a if p in b and a[p]["mult"] == b[p]["mult"]),
+    }
+
+
+# ---------- squad planner ----------
+
+def planner_players(n_gws: int = 3) -> dict:
+    """Every player in a compact form, plus each team's next fixtures, for the planner page."""
+    teams = _teams()
+    return {
+        "gameweek": _next_gw(),
+        "teams": {tid: {"name": t["name"], "short": t["short_name"],
+                        "fixtures": _team_fixtures(tid, n_gws)} for tid, t in teams.items()},
+        "players": [{
+            "id": p["id"], "name": p["web_name"],
+            "full_name": f"{p['first_name']} {p['second_name']}",
+            "team": p["team"], "pos": POSITIONS[p["element_type"]], "price": _price(p),
+            "form": _f(p["form"]), "ppg": _f(p["points_per_game"]), "total": p["total_points"],
+            "owned": _f(p["selected_by_percent"]), "status": STATUS.get(p["status"], p["status"]),
+            "chance": p.get("chance_of_playing_next_round"), "news": p.get("news") or "",
+        } for p in _bootstrap()["elements"]],
+    }
+
+
+def _sell_price(now: int, bought: int) -> int:
+    """FPL selling price in tenths: you keep half of any rise, rounded down to £0.1m."""
+    return now if now <= bought else bought + (now - bought) // 2
+
+
+def _free_transfers(history: dict, started: int, upto: int) -> int:
+    """Estimate the free transfers available for the gameweek after `upto`.
+    One new free transfer arrives each deadline, up to five. Since 2024/25 a Wildcard or
+    Free Hit keeps the saved ones, so those weeks change nothing."""
+    chips = {c["event"]: c["name"] for c in history.get("chips", [])}
+    ft = 1
+    for row in sorted(history.get("current", []), key=lambda r: r["event"]):
+        g = row["event"]
+        if g <= started or g > upto:
+            continue
+        if chips.get(g) in ("wildcard", "freehit"):
+            continue
+        ft = min(5, max(ft - row.get("event_transfers", 0), 0) + 1)
+    return ft
+
+
+def planner_team(team_id: int) -> dict:
+    """A manager's squad as the starting point for the planner: picks, bank, selling
+    prices, chips left and an estimate of free transfers."""
+    entry = _get(f"entry/{team_id}/", ttl=300)
+    gw = entry.get("current_event")
+    if not gw:
+        return {"error": "This team has no squad yet. Its first deadline hasn't passed."}
+    picks = _get(f"entry/{team_id}/event/{gw}/picks/", ttl=300)
+    squad_gw = gw
+    if picks.get("active_chip") == "freehit" and gw > 1:
+        # A Free Hit squad lasts one week; the next deadline starts from the week before.
+        squad_gw = gw - 1
+        picks = _get(f"entry/{team_id}/event/{squad_gw}/picks/", ttl=300)
+    history = _get(f"entry/{team_id}/history/", ttl=600)
+    transfers = _get(f"entry/{team_id}/transfers/", ttl=300)
+    started = entry.get("started_event") or 1
+    players = _players()
+
+    bought = {}  # latest price paid for each player
+    for t in sorted(transfers, key=lambda t: t.get("time") or ""):
+        bought[t["element_in"]] = t["element_in_cost"]
+
+    def start_price(pid):
+        """Price when the manager's first squad was picked, for players never transferred in."""
+        try:
+            for r in _get(f"element-summary/{pid}/")["history"]:
+                if r["round"] >= started:
+                    return r["value"]
+        except (requests.RequestException, KeyError):
+            pass
+        return players[pid]["now_cost"]
+
+    ids = [pk["element"] for pk in picks["picks"]]
+    missing = [pid for pid in ids if pid not in bought]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        bought.update(dict(zip(missing, pool.map(start_price, missing))))
+
+    squad = []
+    for pk in picks["picks"]:
+        pid = pk["element"]
+        now = players[pid]["now_cost"]
+        squad.append({"id": pid, "slot": pk["position"], "captain": pk["is_captain"],
+                      "vice": pk["is_vice_captain"], "purchase": bought[pid] / 10,
+                      "sell": _sell_price(now, bought[pid]) / 10})
+    bank = picks.get("entry_history", {}).get("bank", 0) / 10
+    return {
+        "team_name": entry.get("name"),
+        "manager": f"{entry.get('player_first_name', '')} {entry.get('player_last_name', '')}".strip(),
+        "gameweek": _next_gw(),
+        "squad_from_gw": squad_gw,
+        "bank": bank,
+        "squad": sorted(squad, key=lambda s: s["slot"]),
+        "chips_left": _chips_left(history.get("chips", [])),
+        "free_transfers": _free_transfers(history, started, gw),
+    }
 
 
 # ---------- web UI helpers (not exposed to Claude as tools) ----------

@@ -111,6 +111,21 @@ def league(league_id: int):
     return _explore(fpl.mini_league, league_id=league_id)
 
 
+@app.get("/api/planner/players")
+def planner_players():
+    return _explore(fpl.planner_players)
+
+
+@app.get("/api/planner/team/{team_id}")
+def planner_team(team_id: int):
+    return _explore(fpl.planner_team, team_id=team_id)
+
+
+@app.get("/api/league/{league_id}/radar")
+def league_radar(league_id: int, team_id: Optional[int] = Query(None, ge=1)):
+    return _explore(fpl.league_radar, league_id=league_id, team_id=team_id)
+
+
 # ---------- ask: AI model + tools ----------
 
 def _check_password(supplied: Optional[str]) -> None:
@@ -144,6 +159,7 @@ class Turn(BaseModel):
 class ChatIn(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
     team_id: Optional[int] = Field(None, ge=1)
+    league_id: Optional[int] = Field(None, ge=1)
     history: List[Turn] = Field(default_factory=list, max_length=40)
     password: Optional[str] = Field(None, max_length=200)
 
@@ -175,6 +191,8 @@ def chat(body: ChatIn):
         raise HTTPException(400, "Type a question first.")
     if body.team_id:
         text += f"\n\n(My FPL team ID is {body.team_id}.)"
+    if body.league_id:
+        text += f"\n(My mini-league ID is {body.league_id}.)"
     used = []
     try:
         bot = make_bot()
